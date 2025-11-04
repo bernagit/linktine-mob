@@ -10,7 +10,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.linktine.viewmodel.SettingsEvent
@@ -18,7 +17,7 @@ import com.linktine.viewmodel.SettingsViewModel
 import com.linktine.viewmodel.SettingsViewModelFactory
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
-import com.linktine.R // Import your resources R file
+import com.linktine.R
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -79,22 +78,13 @@ class AuthFragment : Fragment() {
         setupListeners()
         setupObservers()
 
-        // Load saved values into the input fields (optional, the repository handles persistence check)
+        // Load saved values into the input fields (optional)
         loadSavedValues()
     }
 
     private fun loadSavedValues() {
         // You would typically load this data from the ViewModel (or Repository via ViewModel)
-        // For simplicity *now*, we can skip this as the main check is the navigation bypass.
-        // If you want to pre-fill the fields with saved data:
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.areSettingsPresent.collectLatest { isPresent ->
-                if (!isPresent) {
-                    // Implement logic to load the last entered URL/Token if you want
-                    // This often requires the ViewModel to expose the saved ServerInfo
-                }
-            }
-        }
+        // Skipping pre-fill for brevity, focusing on the core logic.
     }
 
 
@@ -104,8 +94,8 @@ class AuthFragment : Fragment() {
             val url = serverUrlInput?.text.toString().trim()
             val token = tokenInput?.text.toString().trim()
 
-            // Call the ViewModel's save function
-            viewModel.saveSettingsAndLogin(url, token) // We will update the ViewModel for login
+            // Call the ViewModel's save AND login function
+            viewModel.saveSettingsAndLogin(url, token)
         }
 
         // 2. QR Scan Button Click
@@ -117,12 +107,11 @@ class AuthFragment : Fragment() {
     }
 
     private fun setupObservers() {
-        // 1. Initial check (Immediate bypass if settings are present)
+        // 1. Initial check: If settings are present, attempt to validate them by calling getMe().
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.areSettingsPresent.collectLatest { isPresent ->
                 if (isPresent) {
-                    // Navigate immediately if settings are found on app start
-                    navigateToHome()
+                    viewModel.validateCurrentSettingsAndLogin()
                 }
             }
         }
@@ -133,10 +122,11 @@ class AuthFragment : Fragment() {
                 when (event) {
                     is SettingsEvent.SettingsSavedSuccess -> {
                         Toast.makeText(requireContext(), event.message, Toast.LENGTH_SHORT).show()
-                        navigateToHome() // Navigate upon successful login/save
+                        navigateToHome() // Navigate upon successful login/save OR successful validation
                     }
                     is SettingsEvent.Error -> {
                         Toast.makeText(requireContext(), event.message, Toast.LENGTH_LONG).show()
+                        // Stays on this fragment if there's an error, as requested.
                     }
                 }
             }

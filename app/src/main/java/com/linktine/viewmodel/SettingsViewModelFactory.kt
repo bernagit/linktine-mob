@@ -16,7 +16,6 @@ class SettingsViewModelFactory(private val context: Context) : ViewModelProvider
             val repository = SettingsRepository(context)
 
             // Return the ViewModel instance
-            @Suppress("UNCHECKED_CAST")
             return SettingsViewModel(repository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

@@ -7,32 +7,25 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.linktine.network.RetrofitFactory
 import com.linktine.utils.HttpClient
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.suspendCancellableCoroutine
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.Response
-import okio.IOException
 import org.json.JSONArray
 import org.json.JSONObject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
+import java.io.IOException
 
+// Assuming DataStore setup here
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class SettingsRepository(private val context: Context) {
 
-    // Define keys for DataStore preferences
     private object PreferencesKeys {
         val SERVER_URL = stringPreferencesKey("server_url")
         val SERVER_TOKEN = stringPreferencesKey("server_token")
     }
 
-    /**
-     * Saves the server URL and Token to DataStore.
-     */
     suspend fun saveSettings(url: String, token: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SERVER_URL] = url
@@ -40,10 +33,6 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Reads the current ServerInfo as a Flow.
-     * Use this to check if settings are already present.
-     */
     val serverInfoFlow: Flow<ServerInfo> = context.dataStore.data
         .map { preferences ->
             val url = preferences[PreferencesKeys.SERVER_URL] ?: ""
@@ -52,83 +41,88 @@ class SettingsRepository(private val context: Context) {
         }
 
     /**
-     * Helper function to check if both URL and Token are non-empty.
+     * Reads the current ServerInfo as a single value (non-Flow) synchronously.
+     * This is the function that resolves the 'Unresolved reference' error in the ViewModel.
      */
+    suspend fun getCurrentServerInfo(): ServerInfo {
+        return serverInfoFlow.first()
+    }
+
     val areSettingsPresent: Flow<Boolean> = serverInfoFlow.map { info ->
         info.url.isNotEmpty() && info.token.isNotEmpty()
     }
 
-    /**
-     * Executes the login and saves settings and user info upon success.
-     * @return The user's name on success, or throws an exception on failure.
-     */
     suspend fun saveSettingsAndLogin(url: String, token: String): String {
-        // 1. Save URL and Token (DataStore is suspended, so this works)
         saveSettings(url, token)
+        return performNetworkValidationAndUserSave(url, token)
+    }
 
-        // 2. Perform the network call and process response (similar to your old activity code)
+    suspend fun validateAndRefreshUser(url: String, token: String): String {
+        return performNetworkValidationAndUserSave(url, token)
+    }
+
+    private suspend fun performNetworkValidationAndUserSave(url: String, token: String): String {
         return try {
-            val request = HttpClient.request(
-                context = context, // Pass context if HttpClient needs it
-                path = "/v1/auth/me",
-                method = "GET",
-                headers = mapOf("Authorization" to "Apikey $token")
-            )
+            val apiUrl = "$url/api"
+            val authService = RetrofitFactory.createApiService(context, apiUrl)
 
-            // Execute synchronously or use a wrapper to handle async inside coroutines
-            // IMPORTANT: For a real app, use Retrofit/Ktor. We adapt your OKHttp style:
-            val response = suspendCancellableCoroutine<Response> { continuation ->
-                HttpClient.execute(request, object : Callback {
-                    override fun onFailure(call: Call, e: IOException) {
-                        continuation.resumeWithException(e)
-                    }
+            val userResponse = authService.getMeWithAuthToken("Apikey $token")
 
-                    override fun onResponse(call: Call, response: Response) {
-                        continuation.resume(response)
-                    }
-                })
+            val userJson = JSONObject().apply {
+                put("id", userResponse.id)
+                put("email", userResponse.email)
+                put("name", userResponse.name)
+                put("role", userResponse.role)
             }
 
-            if (response.isSuccessful) {
-                val body = response.body?.string() ?: throw IOException("Empty response body")
-                val json = JSONObject(body)
-                val userName = json.optString("name")
+            saveUser(userJson, token)
+            userResponse.name
 
-                // 3. Save User Details (similar to your saveUser function)
-                saveUser(json, token)
-
-                userName
-            } else {
-                val errorBody = response.body?.string() ?: "Unknown error"
-                throw IOException("Login failed (Code ${response.code}): $errorBody")
-            }
+        } catch (e: retrofit2.HttpException) {
+            val errorBody = e.response()?.errorBody()?.string() ?: "Unknown error"
+            throw IOException("Login failed (Code ${e.code()}): $errorBody")
         } catch (e: Exception) {
-            // Rethrow the exception to be caught in the ViewModel
-            throw e
+            throw Exception("Login failed: ${e.message}", e)
         }
     }
 
-    // Adapted from your saveUser function
+
     private fun saveUser(json: JSONObject, token: String) {
         val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-        // ... [Your existing logic to save user details to SharedPreferences] ...
-        // NOTE: For a clean MVVM structure, User details should ideally be saved via DataStore or Room
-        // For now, we keep your SharedPreferences logic here, but DataStore is preferred.
-        val users = JSONArray(prefs.getString("users", "[]"))
-        // ... [logic to create user JSONObject and save to prefs] ...
-        val user = JSONObject().apply {
-            put("id", json.optString("id"))
+
+        val usersArray = try {
+            JSONArray(prefs.getString("users", "[]"))
+        } catch (e: Exception) {
+            JSONArray()
+        }
+
+        val userId = json.optString("id")
+
+        val newUserObject = JSONObject().apply {
+            put("id", userId)
             put("email", json.optString("email"))
             put("name", json.optString("name"))
             put("role", json.optString("role"))
             put("token", token)
         }
 
-        users.put(user)
+        var userFound = false
+        for (i in 0 until usersArray.length()) {
+            val existingUser = usersArray.optJSONObject(i)
+            if (existingUser != null && existingUser.optString("id") == userId) {
+                usersArray.put(i, newUserObject)
+                userFound = true
+                break
+            }
+        }
+
+        if (!userFound) {
+            usersArray.put(newUserObject)
+        }
 
         prefs.edit {
-            putString("users", users.toString())
-            putString("activeUser", json.optString("id"))
+            putString("users", usersArray.toString())
+            putString("activeUser", userId)
         }
     }
 }

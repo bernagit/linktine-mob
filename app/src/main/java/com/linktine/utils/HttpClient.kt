@@ -1,98 +1,61 @@
 package com.linktine.utils
 
 import android.content.Context
-import okhttp3.*
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import android.util.Log
 import org.json.JSONArray
-import org.json.JSONObject
 
+/**
+ * This object is now primarily a utility for reading legacy settings
+ * and token from SharedPreferences for the AuthInterceptor.
+ */
 object HttpClient {
-    private val client = OkHttpClient()
-
-    /***
-     * Returns the base API URL (stored as "server_url" in SharedPreferences)
-     */
-    fun getBaseUrl(context: Context): String? {
-        val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-        val base = prefs.getString("server_url", null)
-        return if (base != null) "$base/api" else null
-    }
+    private const val TAG = "HttpClient"
 
     /***
      * Gets the token of the *current* user (last logged-in)
-     * If multiple users are stored, returns the last in the array.
+     * Returns the token prepended with "Apikey ".
      */
     fun getToken(context: Context): String? {
         val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
         val usersJson = prefs.getString("users", "[]") ?: "[]"
-        val activeUser = prefs.getString("activeUser", null) ?: return null
+        val activeUser = prefs.getString("activeUser", null) ?: run {
+            Log.w(TAG, "No active user ID found in SharedPreferences.")
+            return null
+        }
+
+        Log.d(TAG, "Active user ID: $activeUser")
 
         return try {
             val usersArray = JSONArray(usersJson)
-            if (usersArray.length() == 0) return null
+            if (usersArray.length() == 0) {
+                Log.w(TAG, "Users array is empty.")
+                return null
+            }
 
             for (i in 0 until usersArray.length()) {
                 val userObj = usersArray.getJSONObject(i)
                 val id = userObj.optString("id", "")
+
                 if (id.equals(activeUser, ignoreCase = true)) {
                     val token = userObj.optString("token")
-                    return token.let { "Apikey $it" }
+
+                    if (token.isNotEmpty()) {
+                        val fullToken = "Apikey $token"
+                        Log.i(TAG, "Token found and formatted successfully.")
+                        // Log the first few chars of the token for verification, not the full token for security
+                        Log.d(TAG, "Authorization Header Value (Prefix): ${fullToken.take(30)}...")
+                        return fullToken
+                    } else {
+                        Log.e(TAG, "Found active user but token field was empty.")
+                        return null
+                    }
                 }
             }
+            Log.w(TAG, "Active user ID '$activeUser' not found in the users list.")
             null
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error parsing user data or retrieving token.", e)
             null
         }
-    }
-
-    /***
-     * Builds an HTTP request with support for:
-     *  - query parameters
-     *  - custom headers
-     *  - automatic auth header (from last user)
-     */
-    fun request(
-        context: Context,
-        path: String,
-        method: String = "GET",
-        body: RequestBody? = null,
-        params: Map<String, String>? = null,
-        headers: Map<String, String>? = null
-    ): Request {
-
-        val baseUrl = getBaseUrl(context) ?: throw Exception("Server URL not set")
-        val urlBuilder = "$baseUrl$path".toHttpUrlOrNull()!!.newBuilder()
-
-        // Add query parameters
-        params?.forEach { (key, value) -> urlBuilder.addQueryParameter(key, value) }
-
-        val requestBuilder = Request.Builder().url(urlBuilder.build())
-
-        // Add global and custom headers
-        headers?.forEach { (key, value) -> requestBuilder.addHeader(key, value) }
-
-        // Add token automatically if available
-        val token = getToken(context)
-        if (token != null) {
-            requestBuilder.addHeader("Authorization", token)
-        }
-
-        // Set HTTP method
-        when (method.uppercase()) {
-            "POST" -> requestBuilder.post(body ?: FormBody.Builder().build())
-            "PUT" -> requestBuilder.put(body ?: FormBody.Builder().build())
-            "DELETE" -> requestBuilder.delete(body)
-            else -> requestBuilder.get()
-        }
-
-        return requestBuilder.build()
-    }
-
-    /***
-     * Executes a request asynchronously using OkHttp
-     */
-    fun execute(request: Request, callback: Callback) {
-        client.newCall(request).enqueue(callback)
     }
 }
