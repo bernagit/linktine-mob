@@ -19,25 +19,16 @@ import com.linktine.data.RecentCollection
 import com.linktine.viewmodel.HomeViewModel
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.linktine.databinding.FragmentHomeBinding
 
 class HomeFragment : Fragment() {
-    // Use a custom factory to initialize the ViewModel with the required dependencies (Context)
+
     private val homeViewModel: HomeViewModel by viewModels {
         HomeViewModel.Factory(requireContext().applicationContext)
     }
 
-    // View references for the stats and recent items.
-    private var errorIndicator: TextView? = null
-    private var totalLinksValue: TextView? = null
-    private var totalCollectionsValue: TextView? = null
-    private var favoriteLinksValue: TextView? = null
-    private var tagsValue: TextView? = null
-    private var recentLinksContainer: LinearLayout? = null
-    private var swipeRefresh: SwipeRefreshLayout? = null
-
-    // RECENT COLLECTIONS CONTAINER
-    private var recentCollectionsContainer: LinearLayout? = null
+    private var _binding: FragmentHomeBinding? = null
+    private val binding get() = _binding!!
 
     private fun openUrl(url: String) {
         val intent = Intent(Intent.ACTION_VIEW, url.toUri())
@@ -48,38 +39,16 @@ class HomeFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return try {
-            inflater.inflate(R.layout.fragment_home, container, false)
-        } catch (e: Exception) {
-            null
-        }
+    ): View {
+        _binding = FragmentHomeBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize nullable view references.
-        errorIndicator = view.findViewById(R.id.text_error_indicator)
-
-        // Stats Cards
-        totalLinksValue = view.findViewById(R.id.stat_total_links_value)
-        totalCollectionsValue = view.findViewById(R.id.totalCollections)
-        favoriteLinksValue = view.findViewById(R.id.stat_favorite_links_value)
-        tagsValue = view.findViewById(R.id.stat_total_tags_value)
-
-        // Collections Container
-        recentCollectionsContainer = view.findViewById(R.id.list_recent_collections_container)
-
-        // Recent Links Container
-        recentLinksContainer = view.findViewById(R.id.list_recent_links_container)
-
-        // refresh
-        swipeRefresh = view.findViewById(R.id.home_swipe_refresh)
-        swipeRefresh?.setOnRefreshListener {
-            swipeRefresh!!.isRefreshing = true;
-            homeViewModel.loadInitialData() // reload
-            swipeRefresh!!.isRefreshing = false;
+        binding.homeSwipeRefresh.setOnRefreshListener {
+            homeViewModel.loadInitialData()
         }
 
         setupObservers()
@@ -88,28 +57,33 @@ class HomeFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun setupObservers() {
-        homeViewModel.text.observe(viewLifecycleOwner, Observer { statusText ->
-            errorIndicator?.visibility = View.GONE
+
+        homeViewModel.text.observe(viewLifecycleOwner, Observer {
+            binding.textErrorIndicator.visibility = View.GONE
         })
 
         homeViewModel.dashboardData.observe(viewLifecycleOwner, Observer { data ->
             displayDashboardData(data)
+            binding.homeSwipeRefresh.isRefreshing = false
         })
 
         homeViewModel.error.observe(viewLifecycleOwner, Observer { errorMessage ->
-            errorIndicator?.text = "Error: $errorMessage"
-            errorIndicator?.visibility = View.VISIBLE
+            binding.textErrorIndicator.text = "Error: $errorMessage"
+            binding.textErrorIndicator.visibility = View.VISIBLE
+            binding.homeSwipeRefresh.isRefreshing = false
         })
     }
 
     @SuppressLint("SetTextI18n")
     private fun displayDashboardData(data: DashboardResponse) {
-        totalLinksValue?.text = data.stats.totalLinks.toString()
-        totalCollectionsValue?.text = data.stats.totalCollections.toString()
-        favoriteLinksValue?.text = data.stats.favoriteLinks.toString()
-        tagsValue?.text = data.stats.totalTags.toString()
 
-        recentCollectionsContainer?.let { container ->
+        binding.statTotalLinksValue.text = data.stats.totalLinks.toString()
+        binding.totalCollections.text = data.stats.totalCollections.toString()
+        binding.statFavoriteLinksValue.text = data.stats.favoriteLinks.toString()
+        binding.statTotalTagsValue.text = data.stats.totalTags.toString()
+
+        // Recent Collections
+        binding.listRecentCollectionsContainer.let { container ->
             container.removeAllViews()
             if (data.recentCollections.isEmpty()) {
                 val noDataText = TextView(context).apply {
@@ -124,7 +98,8 @@ class HomeFragment : Fragment() {
             }
         }
 
-        recentLinksContainer?.let { container ->
+        // Recent Links
+        binding.listRecentLinksContainer.let { container ->
             container.removeAllViews()
 
             if (data.recentLinks.isEmpty()) {
@@ -141,56 +116,46 @@ class HomeFragment : Fragment() {
             }
         }
 
-
-        // Hide the error indicator if data successfully loaded
-        errorIndicator?.visibility = View.GONE
+        binding.textErrorIndicator.visibility = View.GONE
     }
 
-    // Helper function to dynamically create a view for each collection
     private fun createCollectionListItem(collection: RecentCollection): View {
         val card = MaterialCardView(requireContext()).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(0, 4, 0, 4) // Spacing between items
+                setMargins(0, 4, 0, 4)
             }
-            // Basic Material Components styling
             cardElevation = 1f
             radius = 8f
             setPadding(16, 16, 16, 16)
 
-            // Set up the content view
             val linearLayout = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 setPadding(16, 16, 16, 16)
             }
 
-            // 1. Color Indicator (Circle)
             val colorIndicator = TextView(context).apply {
                 text = "●"
                 textSize = 24f
                 try {
-                    // Try to parse the color string (e.g., "#FF0000")
                     setTextColor(collection.color.toColorInt())
                 } catch (_: IllegalArgumentException) {
-                    // Fallback color if the string is invalid
                     setTextColor(ContextCompat.getColor(context, android.R.color.darker_gray))
                 }
-                // Set layout params for margin on the right
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply { marginEnd = 16 }
             }
 
-            // 2. Collection Name
             val nameTextView = TextView(context).apply {
                 text = collection.name
                 layoutParams = LinearLayout.LayoutParams(
                     0,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1.0f // Take up remaining space
+                    1.0f
                 )
             }
 
@@ -244,15 +209,8 @@ class HomeFragment : Fragment() {
         return card
     }
 
-
     override fun onDestroyView() {
         super.onDestroyView()
-        // Manually nulling view references
-        errorIndicator = null
-        totalLinksValue = null
-        totalCollectionsValue = null
-        favoriteLinksValue = null
-        tagsValue = null
-        recentCollectionsContainer = null
+        _binding = null
     }
 }
