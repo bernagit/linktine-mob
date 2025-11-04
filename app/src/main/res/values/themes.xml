@@ -1,8 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!--
-      Base application theme. The parent Theme.MaterialComponents is the correct choice
-      for the dependency version 1.13.0, which resolves the layout inflation error.
-    -->
+<resources >
     <style name="Theme.Linktine" parent="Theme.MaterialComponents.DayNight.NoActionBar">
 
         <!-- Primary brand color. -->
