@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.linktine.data.DashboardRepository
-import com.linktine.data.DashboardResponse
+import com.linktine.data.types.DashboardResponse
 import com.linktine.data.SettingsRepository
 import kotlinx.coroutines.launch
 

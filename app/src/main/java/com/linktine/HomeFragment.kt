@@ -14,8 +14,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import com.google.android.material.card.MaterialCardView
-import com.linktine.data.DashboardResponse
-import com.linktine.data.RecentCollection
+import com.linktine.data.types.DashboardResponse
+import com.linktine.data.types.RecentCollection
 import com.linktine.viewmodel.HomeViewModel
 import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
@@ -197,7 +197,7 @@ class HomeFragment : Fragment() {
             val urlView = TextView(context).apply {
                 text = url
                 textSize = 14f
-                setTextColor(ContextCompat.getColor(context, R.color.teal_700))
+                setTextColor(ContextCompat.getColor(context, R.color.teal_300))
             }
 
             layout.addView(titleView)

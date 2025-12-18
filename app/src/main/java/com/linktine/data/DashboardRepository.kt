@@ -1,6 +1,7 @@
 package com.linktine.data
 
 import android.content.Context
+import com.linktine.data.types.DashboardResponse
 import com.linktine.network.ApiService
 import com.linktine.network.RetrofitFactory
 import kotlinx.coroutines.flow.first

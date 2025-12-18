@@ -1,4 +1,4 @@
-package com.linktine.data
+package com.linktine.data.types
 
 import com.google.gson.annotations.SerializedName
 
