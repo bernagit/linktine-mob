@@ -1,0 +1,136 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:padding="20dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Edit Button -->
+        <Button
+            android:id="@+id/buttonEdit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Edit"
+            android:textAllCaps="false"
+            android:layout_marginBottom="12dp"/>
+
+        <!-- Editable Title -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:boxStrokeColor="@color/teal_300"
+            android:layout_marginBottom="12dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Title"
+                android:enabled="false"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Editable URL -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:boxStrokeColor="@color/teal_300"
+            android:layout_marginBottom="16dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputUrl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="https://example.com"
+                android:inputType="textUri"
+                android:enabled="false"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Checkboxes -->
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/statusToggleGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:singleSelection="false"
+            app:selectionRequired="false">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonRead"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Read"
+                app:strokeColor="@color/teal_300"
+                app:iconTint="@color/teal_300"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonArchived"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Archived"
+                app:strokeColor="@color/gray_200"
+                app:iconTint="@color/gray_200"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonFavorite"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Favorite"
+                app:strokeColor="@color/yellow_500"
+                app:iconTint="@color/yellow_500"/>
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+
+        <!-- Domain / Description / Created / Updated -->
+        <TextView
+            android:id="@+id/detailDomain"
+            android:textSize="14sp"
+            android:text="Domain"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_marginBottom="4dp"/>
+
+        <TextView
+            android:id="@+id/detailDescription"
+            android:textSize="14sp"
+            android:text="Description"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_marginBottom="12dp"/>
+
+        <TextView
+            android:id="@+id/detailCreated"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:text="Created at"
+            android:layout_marginBottom="2dp"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"/>
+
+        <TextView
+            android:id="@+id/detailUpdated"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:text="Updated at"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"/>
+
+        <!-- Tags -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/detailTagGroup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:singleLine="true"
+            app:chipSpacingHorizontal="8dp"
+            app:chipSpacingVertical="8dp"/>
+    </LinearLayout>
+</ScrollView>

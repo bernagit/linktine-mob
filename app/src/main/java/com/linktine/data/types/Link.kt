@@ -21,3 +21,16 @@ data class Link(
     @SerializedName("tags") val tags: List<LinkTag>,
     @SerializedName("collection") val collection: Collection?
 )
+
+data class LinkCreate(
+    @SerializedName("url") val url: String,
+    @SerializedName("name") val name: String? = null,
+)
+
+data class LinkUpdate(
+    @SerializedName("name") val title: String? = null,
+    @SerializedName("url") val url: String? = null,
+    @SerializedName("read") val read: Boolean? = null,
+    @SerializedName("archived") val archived: Boolean? = null,
+    @SerializedName("favorite") val favorite: Boolean? = null,
+)

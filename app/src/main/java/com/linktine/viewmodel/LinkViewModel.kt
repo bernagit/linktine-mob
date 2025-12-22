@@ -53,11 +53,42 @@ class LinkViewModel(
         }
     }
 
-    fun loadNextPage() {
-        val current = _linkData.value ?: return
-        val nextPage = current.page + 1
-        loadInitialLinks(page = nextPage, limit = current.pageSize)
+    fun addLink(title: String?, url: String) {
+        viewModelScope.launch {
+            linkRepository.createLink(url = url, name = title)
+        }
     }
+
+    fun deleteLink(id: String) {
+        viewModelScope.launch {
+            linkRepository.deleteLink(id = id)
+        }
+    }
+
+    fun updateLink(
+        id: String,
+        title: String,
+        url: String,
+        read: Boolean,
+        archived: Boolean,
+        favorite: Boolean
+    ) {
+        viewModelScope.launch {
+            try {
+                linkRepository.updateLink(
+                    id = id,
+                    title = title,
+                    url = url,
+                    read = read,
+                    archived = archived,
+                    favorite = favorite
+                )
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed updating link"
+            }
+        }
+    }
+
 
     // Factory
     class Factory(private val context: Context) : ViewModelProvider.Factory {

@@ -2,4 +2,8 @@
     <string name="app_name">Linktine</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="search_links">Search links…</string>
+    <string name="read">Read</string>
+    <string name="archived">Archived</string>
+    <string name="add_new_link">Add new link</string>
 </resources>

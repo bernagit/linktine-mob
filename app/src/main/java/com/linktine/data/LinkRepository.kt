@@ -2,6 +2,8 @@ package com.linktine.data
 
 import android.content.Context
 import com.linktine.data.types.Link
+import com.linktine.data.types.LinkCreate
+import com.linktine.data.types.LinkUpdate
 import com.linktine.data.types.PaginatedResponse
 import com.linktine.network.ApiService
 import com.linktine.network.RetrofitFactory
@@ -47,5 +49,54 @@ class LinkRepository(
             throw IOException("Could not load links.")
         }
     }
+
+    suspend fun createLink(
+        url: String,
+        name: String? = null,
+    ): Link {
+        val service = getApiService()
+        return try {
+            val link = LinkCreate(url, name)
+            service.createLink(link)
+        } catch (e: Exception) {
+            println("Link API call failed: ${e.message}")
+            throw IOException("Could not create link.")
+        }
+    }
+
+    suspend fun deleteLink(
+        id: String,
+    ) {
+        val service = getApiService()
+        return try {
+            service.deleteLink(id)
+        } catch (e: Exception) {
+            println("Link API call failed: ${e.message}")
+            throw IOException("Could not delete link.")
+        }
+    }
+
+    suspend fun updateLink(
+        id: String,
+        title: String,
+        url: String,
+        read: Boolean,
+        archived: Boolean,
+        favorite: Boolean
+    ) {
+        val service = getApiService()
+        val linkUpdate = LinkUpdate(
+            title = title,
+            url = url,
+            read = read,
+            archived = archived,
+            favorite = favorite
+        )
+        service.updateLink(
+            id = id,
+            link = linkUpdate
+        )
+    }
+
 
 }
