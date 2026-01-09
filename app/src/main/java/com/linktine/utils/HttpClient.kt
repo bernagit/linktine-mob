@@ -58,4 +58,34 @@ object HttpClient {
             null
         }
     }
+
+    fun clearToken(context: Context) {
+        val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
+        val usersJson = prefs.getString("users", "[]") ?: "[]"
+        val activeUserId = prefs.getString("activeUser", null)
+
+        if (activeUserId == null) {
+            Log.w(TAG, "clearToken: No active user found.")
+            return
+        }
+
+        try {
+            val usersArray = JSONArray(usersJson)
+            for (i in 0 until usersArray.length()) {
+                val userObj = usersArray.getJSONObject(i)
+                val id = userObj.optString("id", "")
+                if (id.equals(activeUserId, ignoreCase = true)) {
+                    userObj.remove("token") // ✅ remove the token key
+                    Log.i(TAG, "Token cleared for active user: $activeUserId")
+                    break
+                }
+            }
+
+            prefs.edit().putString("users", usersArray.toString()).apply()
+            prefs.edit().remove("activeUser").apply()
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error while clearing token for active user.", e)
+        }
+    }
 }

@@ -1,6 +1,8 @@
 package com.linktine.network
 
 import com.linktine.data.types.DashboardResponse
+import com.linktine.data.CollectionsResponse
+import com.linktine.data.DashboardResponse
 import com.linktine.data.UserResponse
 import com.linktine.data.types.Link
 import com.linktine.data.types.LinkCreate
@@ -68,4 +70,6 @@ interface ApiService {
 
     @PATCH("v1/tags/{id}/links")
     suspend fun updateLinks(@Path("id") id: String, @Body updateTag: TagUpdateLinks)
+    @GET("v1/collections")
+    suspend fun getCollections(): CollectionsResponse
 }

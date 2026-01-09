@@ -22,6 +22,11 @@ class AuthInterceptor(private val context: Context) : Interceptor {
             requestBuilder.header("Authorization", token)
         }
 
-        return chain.proceed(requestBuilder.build())
+        val response = chain.proceed(requestBuilder.build())
+        if(response.code == 401) {
+            HttpClient.clearToken(context)
+        }
+
+        return response
     }
 }
