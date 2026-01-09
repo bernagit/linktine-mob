@@ -1,0 +1,20 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/popup_background"
+    android:elevation="8dp">
+
+    <CheckBox
+        android:id="@+id/popupFilterRead"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/read"/>
+
+    <CheckBox
+        android:id="@+id/popupFilterArchived"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/archived"/>
+</LinearLayout>

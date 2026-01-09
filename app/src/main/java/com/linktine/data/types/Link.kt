@@ -25,10 +25,11 @@ data class Link(
 data class LinkCreate(
     @SerializedName("url") val url: String,
     @SerializedName("name") val name: String? = null,
+    @SerializedName("tags") val tags: List<String>? = null
 )
 
 data class LinkUpdate(
-    @SerializedName("name") val title: String? = null,
+    @SerializedName("name") val name: String? = null,
     @SerializedName("url") val url: String? = null,
     @SerializedName("read") val read: Boolean? = null,
     @SerializedName("archived") val archived: Boolean? = null,

@@ -20,14 +20,17 @@ import com.linktine.databinding.FragmentLinksBinding
 import com.linktine.viewmodel.LinkViewModel
 import android.text.Editable
 import android.text.TextWatcher
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.PopupWindow
 import android.widget.Toast
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.linktine.data.types.Link
-import com.linktine.data.types.LinkTag
 import com.linktine.data.types.Tag
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
@@ -37,15 +40,21 @@ import kotlinx.coroutines.launch
 import androidx.core.graphics.toColorInt
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
-import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.textfield.TextInputEditText
+import com.linktine.viewmodel.TagViewModel
 
 class LinksFragment : Fragment() {
 
     private val linkViewModel: LinkViewModel by viewModels {
         LinkViewModel.Factory(requireContext().applicationContext)
     }
+    private val tagViewModel: TagViewModel by viewModels {
+        TagViewModel.Factory(requireContext().applicationContext)
+    }
 
+    // Three-state filter variables
+    private var readFilter: Boolean? = null
+    private var archivedFilter: Boolean? = null
     private var _binding: FragmentLinksBinding? = null
     private val binding get() = _binding!!
 
@@ -76,14 +85,6 @@ class LinksFragment : Fragment() {
             true
         }
 
-        binding.filterRead.setOnCheckedChangeListener { _, isChecked ->
-            triggerReload(read = isChecked)
-        }
-
-        binding.filterArchived.setOnCheckedChangeListener { _, isChecked ->
-            triggerReload(archived = isChecked)
-        }
-
         binding.linksSwipe.setOnRefreshListener {
             triggerReload()
         }
@@ -102,15 +103,70 @@ class LinksFragment : Fragment() {
             renderError(it)
             binding.linksSwipe.isRefreshing = false
         }
+        tagViewModel.loadTags()
 
-        // Initial load
+        binding.filterButton.setOnClickListener { view ->
+            val popupView = layoutInflater.inflate(R.layout.popup_filters, null)
+            val popup = PopupWindow(
+                popupView,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                true
+            )
+            popup.elevation = 8f
+
+            val readCheckbox = popupView.findViewById<CheckBox>(R.id.popupFilterRead)
+            val archivedCheckbox = popupView.findViewById<CheckBox>(R.id.popupFilterArchived)
+
+            fun setupThreeState(checkbox: CheckBox, value: Boolean?) {
+                when (value) {
+                    null -> { checkbox.isChecked = false; checkbox.alpha = 0.5f }
+                    true -> { checkbox.isChecked = true; checkbox.alpha = 1f }
+                    false -> { checkbox.isChecked = true; checkbox.alpha = 0.5f } // visually indicate "false"
+                }
+            }
+
+            setupThreeState(readCheckbox, readFilter)
+            setupThreeState(archivedCheckbox, archivedFilter)
+
+            // Click cycle through null -> true -> false
+            readCheckbox.setOnClickListener {
+                readFilter = when (readFilter) {
+                    null -> true
+                    true -> false
+                    false -> null
+                }
+                setupThreeState(readCheckbox, readFilter)
+                triggerReload()
+            }
+
+            archivedCheckbox.setOnClickListener {
+                archivedFilter = when (archivedFilter) {
+                    null -> true
+                    true -> false
+                    false -> null
+                }
+                setupThreeState(archivedCheckbox, archivedFilter)
+                triggerReload()
+            }
+
+            // Apply filter when popup dismissed
+            popup.setOnDismissListener {
+                triggerReload(
+                    read = readFilter,
+                    archived = archivedFilter
+                )
+            }
+
+            popup.showAsDropDown(view)
+        }
         triggerReload()
     }
 
     private fun triggerReload(
         query: String? = binding.searchQuery.text.toString().trim().ifEmpty { null },
-        read: Boolean? = if (binding.filterRead.isChecked) true else null,
-        archived: Boolean? = if (binding.filterArchived.isChecked) true else null,
+        read: Boolean? = readFilter,
+        archived: Boolean? = archivedFilter
     ) {
         linkViewModel.loadInitialLinks(
             page = 1,
@@ -123,9 +179,54 @@ class LinksFragment : Fragment() {
 
     private fun showAddLinkDialog() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_link, null)
-        val titleInput = dialogView.findViewById<EditText>(R.id.inputTitle)
+        val titleInput = dialogView.findViewById<EditText>(R.id.inputName)
         val urlInput = dialogView.findViewById<EditText>(R.id.inputUrl)
+        val tagInput = dialogView.findViewById<AutoCompleteTextView>(R.id.inputTag)
+        val chipGroup = dialogView.findViewById<ChipGroup>(R.id.tagChipGroup)
 
+        val tags = tagViewModel.tagData.value.orEmpty() // get current tags
+
+        val adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_dropdown_item_1line,
+            tags.map { it.name }
+        )
+        tagInput.setAdapter(adapter)
+
+        // Function to add chip
+        fun addTagChip(tagName: String) {
+            if (tagName.isBlank()) return
+
+            // Prevent duplicates
+            for (i in 0 until chipGroup.childCount) {
+                if ((chipGroup.getChildAt(i) as Chip).text == tagName) return
+            }
+
+            val existingTag = tags.find { it.name == tagName }
+
+            val chip = Chip(requireContext()).apply {
+                text = tagName
+                isCloseIconVisible = true
+                setOnCloseIconClickListener { chipGroup.removeView(this) }
+                if (existingTag != null) chipBackgroundColor = ColorStateList.valueOf(existingTag.color.toColorInt())
+            }
+            chipGroup.addView(chip)
+        }
+
+        // Add chip on dropdown selection
+        tagInput.setOnItemClickListener { _, _, position, _ ->
+            addTagChip(adapter.getItem(position)!!)
+            tagInput.text = null
+        }
+
+        // Add chip on enter/done
+        tagInput.setOnEditorActionListener { _, _, _ ->
+            addTagChip(tagInput.text.toString())
+            tagInput.text = null
+            true
+        }
+
+        // Show dialog
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Add new link")
             .setView(dialogView)
@@ -133,8 +234,20 @@ class LinksFragment : Fragment() {
                 val title = titleInput.text.toString().trim().ifEmpty { null }
                 val url = urlInput.text.toString().trim()
                 if (url.isNotEmpty()) {
+                    val selectedTags = mutableListOf<String>()
+                    for (i in 0 until chipGroup.childCount) {
+                        val chip = chipGroup.getChildAt(i) as Chip
+                        val existingTag = tags.find { it.name == chip.text.toString() }
+                        if (existingTag != null) {
+                            selectedTags.add(existingTag.name)
+                        } else {
+                            // Create new tag
+                            selectedTags.add(chip.text.toString())
+                        }
+                    }
+
                     lifecycleScope.launch {
-                        linkViewModel.addLink(title, url)
+                        linkViewModel.addLink(title, url, selectedTags)
                         triggerReload()
                     }
                 }
@@ -143,17 +256,29 @@ class LinksFragment : Fragment() {
             .show()
     }
 
+    fun setButtonSelected(button: MaterialButton, selected: Boolean, color: Int) {
+        if (selected) {
+            button.setBackgroundColor(color)
+            button.setTextColor(Color.WHITE)
+            button.strokeColor = ColorStateList.valueOf(color)
+        } else {
+            button.setBackgroundColor(Color.TRANSPARENT)
+            button.setTextColor(color)
+            button.strokeColor = ColorStateList.valueOf(color)
+        }
+    }
+
+
     @SuppressLint("SetTextI18n")
     private fun showLinkDetailsDialog(link: Link) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_link_details, null)
 
         // Editable fields
-        val inputTitle = dialogView.findViewById<TextInputEditText>(R.id.inputTitle)
+        val inputName = dialogView.findViewById<TextInputEditText>(R.id.inputName)
         val inputUrl = dialogView.findViewById<TextInputEditText>(R.id.inputUrl)
         val buttonEdit = dialogView.findViewById<Button>(R.id.buttonEdit)
 
         // Status toggle buttons
-        val statusToggleGroup = dialogView.findViewById<MaterialButtonToggleGroup>(R.id.statusToggleGroup)
         val buttonRead = dialogView.findViewById<MaterialButton>(R.id.buttonRead)
         val buttonArchived = dialogView.findViewById<MaterialButton>(R.id.buttonArchived)
         val buttonFavorite = dialogView.findViewById<MaterialButton>(R.id.buttonFavorite)
@@ -166,11 +291,37 @@ class LinksFragment : Fragment() {
         val tagGroup = dialogView.findViewById<ChipGroup>(R.id.detailTagGroup)
 
         // Populate initial values
-        inputTitle.setText(link.title)
+        setButtonSelected(buttonRead, link.read, ContextCompat.getColor(requireContext(), R.color.teal_300))
+        setButtonSelected(buttonArchived, link.archived, ContextCompat.getColor(requireContext(), R.color.gray_300))
+        setButtonSelected(buttonFavorite, link.favorite, ContextCompat.getColor(requireContext(), R.color.orange_500))
+        inputName.setText(link.name)
         inputUrl.setText(link.url)
-        buttonRead.isChecked = link.read
-        buttonArchived.isChecked = link.archived
-        buttonFavorite.isChecked = link.favorite
+
+        // Initialize button states
+        var readSelected = link.read
+        var archivedSelected = link.archived
+        var favoriteSelected = link.favorite
+
+        setButtonSelected(buttonRead, readSelected, ContextCompat.getColor(requireContext(), R.color.teal_300))
+        setButtonSelected(buttonArchived, archivedSelected, ContextCompat.getColor(requireContext(), R.color.gray_300))
+        setButtonSelected(buttonFavorite, favoriteSelected, ContextCompat.getColor(requireContext(), R.color.orange_500))
+
+// Click listeners
+        buttonRead.setOnClickListener {
+            readSelected = !readSelected
+            setButtonSelected(buttonRead, readSelected, ContextCompat.getColor(requireContext(), R.color.teal_300))
+        }
+
+        buttonArchived.setOnClickListener {
+            archivedSelected = !archivedSelected
+            setButtonSelected(buttonArchived, archivedSelected, ContextCompat.getColor(requireContext(), R.color.gray_300))
+        }
+
+        buttonFavorite.setOnClickListener {
+            favoriteSelected = !favoriteSelected
+            setButtonSelected(buttonFavorite, favoriteSelected, ContextCompat.getColor(requireContext(), R.color.orange_500))
+        }
+
 
         domain.text = "Domain: ${link.domain ?: "-"}"
         description.text = link.description ?: "(No description)"
@@ -182,11 +333,11 @@ class LinksFragment : Fragment() {
 
         // Disable editing initially
         fun setEditMode(editable: Boolean) {
-            inputTitle.isEnabled = editable
+            inputName.isEnabled = editable
             inputUrl.isEnabled = editable
 
             val alpha = if (editable) 1f else 0.6f
-            inputTitle.alpha = alpha
+            inputName.alpha = alpha
             inputUrl.alpha = alpha
         }
 
@@ -202,7 +353,7 @@ class LinksFragment : Fragment() {
             .setPositiveButton("Save") { _, _ ->
                 linkViewModel.updateLink(
                     id = link.id,
-                    title = link.title.toString(),
+                    name = inputName.text.toString(),
                     url = inputUrl.text.toString(),
                     read = buttonRead.isChecked,
                     archived = buttonArchived.isChecked,
@@ -253,9 +404,6 @@ class LinksFragment : Fragment() {
             text = tag.name
             isClickable = false
             isCheckable = false
-            setTextColor(ContextCompat.getColor(context, android.R.color.white))
-
-            // Tag color is hex, like "#FF5722"
             val colorInt = tag.color.toColorInt()
             chipBackgroundColor = ColorStateList.valueOf(colorInt)
         }
@@ -314,7 +462,11 @@ class LinksFragment : Fragment() {
             }
 
             val titleView = TextView(context).apply {
-                text = link.title ?: link.name ?: "No title"
+                text = when {
+                    !link.name.isNullOrBlank() -> link.name
+                    !link.title.isNullOrBlank() -> link.title
+                    else -> "No title"
+                }
                 textSize = 16f
             }
 

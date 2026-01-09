@@ -112,7 +112,12 @@ class HomeFragment : Fragment() {
             }
 
             data.recentLinks.take(3).forEach { link ->
-                container.addView(createRecentLinkCard(link.title, link.url))
+                container.addView(createRecentLinkCard(
+                    when {
+                        link.name.isNotBlank() -> link.name
+                        link.title.isNotBlank() -> link.title
+                        else -> "No title"
+                    }, link.url))
             }
         }
 

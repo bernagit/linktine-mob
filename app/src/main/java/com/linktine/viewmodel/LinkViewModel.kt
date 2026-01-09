@@ -53,21 +53,23 @@ class LinkViewModel(
         }
     }
 
-    fun addLink(title: String?, url: String) {
+    fun addLink(title: String?, url: String, tags: List<String>) {
         viewModelScope.launch {
-            linkRepository.createLink(url = url, name = title)
+            linkRepository.createLink(url = url, name = title, tags = tags)
         }
+        loadInitialLinks()
     }
 
     fun deleteLink(id: String) {
         viewModelScope.launch {
             linkRepository.deleteLink(id = id)
         }
+        loadInitialLinks()
     }
 
     fun updateLink(
         id: String,
-        title: String,
+        name: String,
         url: String,
         read: Boolean,
         archived: Boolean,
@@ -77,7 +79,7 @@ class LinkViewModel(
             try {
                 linkRepository.updateLink(
                     id = id,
-                    title = title,
+                    name = name,
                     url = url,
                     read = read,
                     archived = archived,
@@ -87,6 +89,7 @@ class LinkViewModel(
                 _error.value = e.message ?: "Failed updating link"
             }
         }
+        loadInitialLinks()
     }
 
 

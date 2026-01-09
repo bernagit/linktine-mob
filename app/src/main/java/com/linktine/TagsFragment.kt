@@ -132,7 +132,11 @@ class TagsFragment : Fragment() {
             val link = tagLink.link
 
             val tv = TextView(requireContext()).apply {
-                text = link.title ?: link.url
+                text = when {
+                    !link.name.isNullOrBlank() -> link.name
+                    !link.title.isNullOrBlank() -> link.title
+                    else -> "No title"
+                }
                 textSize = 15f
                 setPadding(0, 8, 0, 8)
                 setTextColor(requireContext().getColor(R.color.purple_300))

@@ -53,10 +53,11 @@ class LinkRepository(
     suspend fun createLink(
         url: String,
         name: String? = null,
+        tags: List<String>? = null
     ): Link {
         val service = getApiService()
         return try {
-            val link = LinkCreate(url, name)
+            val link = LinkCreate(url, name, tags)
             service.createLink(link)
         } catch (e: Exception) {
             println("Link API call failed: ${e.message}")
@@ -78,7 +79,7 @@ class LinkRepository(
 
     suspend fun updateLink(
         id: String,
-        title: String,
+        name: String,
         url: String,
         read: Boolean,
         archived: Boolean,
@@ -86,7 +87,7 @@ class LinkRepository(
     ) {
         val service = getApiService()
         val linkUpdate = LinkUpdate(
-            title = title,
+            name = name,
             url = url,
             read = read,
             archived = archived,

@@ -18,7 +18,7 @@
             android:textAllCaps="false"
             android:layout_marginBottom="12dp"/>
 
-        <!-- Editable Title -->
+        <!-- Editable Name -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -27,10 +27,10 @@
             android:layout_marginBottom="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/inputTitle"
+                android:id="@+id/inputName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Title"
+                android:hint="Name"
                 android:enabled="false"/>
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -46,47 +46,57 @@
                 android:id="@+id/inputUrl"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="https://example.com"
+                android:hint="URL"
                 android:inputType="textUri"
                 android:enabled="false"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Checkboxes -->
-        <com.google.android.material.button.MaterialButtonToggleGroup
-            android:id="@+id/statusToggleGroup"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="16dp"
             android:layout_marginBottom="16dp"
-            app:singleSelection="false"
-            app:selectionRequired="false">
+            android:baselineAligned="false"
+            android:clipToPadding="false">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonRead"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Read"
-                app:strokeColor="@color/teal_300"
-                app:iconTint="@color/teal_300"/>
+                android:singleLine="true"
+                android:ellipsize="none"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonArchived"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Archived"
-                app:strokeColor="@color/gray_200"
-                app:iconTint="@color/gray_200"/>
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:singleLine="true"
+                android:ellipsize="none"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/buttonFavorite"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Favorite"
-                app:strokeColor="@color/yellow_500"
-                app:iconTint="@color/yellow_500"/>
-        </com.google.android.material.button.MaterialButtonToggleGroup>
+                android:singleLine="true"
+                android:ellipsize="none"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+        </LinearLayout>
+
 
 
         <!-- Domain / Description / Created / Updated -->
