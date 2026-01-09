@@ -1,59 +1,105 @@
 package com.linktine
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
+import android.widget.LinearLayout
+import androidx.core.graphics.toColorInt
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.linktine.data.types.Tag
+import com.linktine.viewmodel.TagViewModel
+import com.skydoves.colorpickerview.ColorPickerView
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- * Use the [TagsFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class TagsFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
+    private val viewModel: TagViewModel by viewModels {
+        TagViewModel.Factory(requireContext().applicationContext)
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_tags, container, false)
+    ): View = inflater.inflate(R.layout.fragment_tags, container, false)
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        val container = view.findViewById<ChipGroup>(R.id.tagsContainer)
+        val fab = view.findViewById<View>(R.id.addTagFab)
+
+        viewModel.tagData.observe(viewLifecycleOwner) { tags ->
+            container.removeAllViews()
+            tags.forEach { tag ->
+                container.addView(createTagView(tag))
+            }
+        }
+
+        fab.setOnClickListener { showTagDialog() }
+
+        viewModel.loadTags()
     }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment TagsFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            TagsFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+    private fun createTagView(tag: Tag): Chip =
+        Chip(requireContext()).apply {
+            text = tag.name
+            chipBackgroundColor = ColorStateList.valueOf(tag.color.toColorInt())
+            setTextColor(Color.WHITE)
+
+            setOnLongClickListener {
+                showTagDialog(tag)
+                true
+            }
+        }
+
+    private fun showTagDialog(tag: Tag? = null) {
+        val context = requireContext()
+
+        // Inflate the dialog layout once
+        val dialogLayout = layoutInflater.inflate(R.layout.dialog_color_picker, null, false)
+        val input = dialogLayout.findViewById<EditText>(R.id.inputTagName)
+        val colorPickerView = dialogLayout.findViewById<ColorPickerView>(R.id.colorPickerView)
+
+        // Pre-fill values if editing
+        input.setText(tag?.name)
+        var selectedColor = tag?.color?.toColorInt() ?: Color.parseColor("#2196F3")
+        colorPickerView.setInitialColor(selectedColor)
+        colorPickerView.setPreferenceName("TagColorPicker")
+        colorPickerView.setColorListener(object : com.skydoves.colorpickerview.listeners.ColorListener {
+            override fun onColorSelected(color: Int, fromUser: Boolean) {
+                selectedColor = color
+            }
+        })
+
+        // Show dialog
+        MaterialAlertDialogBuilder(context)
+            .setTitle(if (tag == null) "New tag" else "Edit tag")
+            .setView(dialogLayout)
+            .setPositiveButton("Save") { _, _ ->
+                val name = input.text.toString().trim()
+                if (name.isEmpty()) return@setPositiveButton
+
+                val hexColor = String.format("#%06X", 0xFFFFFF and selectedColor)
+
+                if (tag == null)
+                    viewModel.createTag(name, hexColor)
+                else
+                    viewModel.updateTag(tag.id, name, hexColor)
+            }
+            .setNegativeButton("Cancel", null)
+            .apply {
+                if (tag != null) {
+                    setNeutralButton("Delete") { _, _ ->
+                        viewModel.deleteTag(tag.id)
+                    }
                 }
             }
+            .show()
     }
 }

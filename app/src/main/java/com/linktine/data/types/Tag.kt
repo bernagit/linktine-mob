@@ -14,3 +14,12 @@ data class Tag(
     @SerializedName("color") val color: String,
     @SerializedName("createdAt") val createdAt: String
 )
+
+data class TagCreate(
+    @SerializedName("name") val name: String,
+    @SerializedName("color") val color: String,
+)
+
+data class TagUpdateLinks(
+    @SerializedName("linkIds") val linkIds: List<String>
+)
