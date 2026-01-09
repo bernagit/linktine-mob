@@ -1,22 +1,26 @@
 package com.linktine
 
-import android.content.res.ColorStateList
-import android.graphics.Color
+import TagsAdapter
+import android.content.DialogInterface
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import com.google.android.material.chip.Chip
-import com.google.android.material.chip.ChipGroup
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.linktine.data.types.Tag
 import com.linktine.viewmodel.TagViewModel
 import com.skydoves.colorpickerview.ColorPickerView
+import androidx.core.net.toUri
 
 class TagsFragment : Fragment() {
 
@@ -31,54 +35,51 @@ class TagsFragment : Fragment() {
     ): View = inflater.inflate(R.layout.fragment_tags, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        val container = view.findViewById<ChipGroup>(R.id.tagsContainer)
+        val recycler = view.findViewById<RecyclerView>(R.id.tagsRecycler)
         val fab = view.findViewById<View>(R.id.addTagFab)
 
-        viewModel.tagData.observe(viewLifecycleOwner) { tags ->
-            container.removeAllViews()
-            tags.forEach { tag ->
-                container.addView(createTagView(tag))
+        val adapter = TagsAdapter(
+            onClick = { tag ->
+                showTagDetailDialog(tag)   // short click
+            },
+            onLongClick = { tag ->
+                showTagEditDialog(tag)     // long click
             }
+        )
+
+        recycler.adapter = adapter
+
+        viewModel.tagData.observe(viewLifecycleOwner) {
+            adapter.submit(it)
         }
 
-        fab.setOnClickListener { showTagDialog() }
+        fab.setOnClickListener {
+            showTagEditDialog()   // create new tag
+        }
 
         viewModel.loadTags()
     }
 
-    private fun createTagView(tag: Tag): Chip =
-        Chip(requireContext()).apply {
-            text = tag.name
-            chipBackgroundColor = ColorStateList.valueOf(tag.color.toColorInt())
-            setTextColor(Color.WHITE)
+    // ---------------- EDIT DIALOG ----------------
 
-            setOnLongClickListener {
-                showTagDialog(tag)
-                true
-            }
-        }
+    private fun showTagEditDialog(tag: Tag? = null) {
 
-    private fun showTagDialog(tag: Tag? = null) {
-        val context = requireContext()
-
-        // Inflate the dialog layout once
         val dialogLayout = layoutInflater.inflate(R.layout.dialog_color_picker, null, false)
         val input = dialogLayout.findViewById<EditText>(R.id.inputTagName)
         val colorPickerView = dialogLayout.findViewById<ColorPickerView>(R.id.colorPickerView)
 
-        // Pre-fill values if editing
         input.setText(tag?.name)
-        var selectedColor = tag?.color?.toColorInt() ?: Color.parseColor("#2196F3")
+
+        var selectedColor = tag?.color?.toColorInt() ?: "#2196F3".toColorInt()
+
         colorPickerView.setInitialColor(selectedColor)
-        colorPickerView.setPreferenceName("TagColorPicker")
         colorPickerView.setColorListener(object : com.skydoves.colorpickerview.listeners.ColorListener {
             override fun onColorSelected(color: Int, fromUser: Boolean) {
                 selectedColor = color
             }
         })
 
-        // Show dialog
-        MaterialAlertDialogBuilder(context)
+         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(if (tag == null) "New tag" else "Edit tag")
             .setView(dialogLayout)
             .setPositiveButton("Save") { _, _ ->
@@ -101,5 +102,63 @@ class TagsFragment : Fragment() {
                 }
             }
             .show()
+
+
+        dialog.getButton(DialogInterface.BUTTON_NEUTRAL)
+            .setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark))
+
+    }
+
+    // ---------------- DETAIL DIALOG ----------------
+
+    private fun showTagDetailDialog(tag: Tag) {
+
+        val view = layoutInflater.inflate(R.layout.dialog_tag_detail, null)
+
+        val name = view.findViewById<TextView>(R.id.tagName)
+        val dot = view.findViewById<View>(R.id.colorDot)
+        val date = view.findViewById<TextView>(R.id.tagDate)
+        val count = view.findViewById<TextView>(R.id.tagCount)
+        val linksContainer = view.findViewById<LinearLayout>(R.id.linksContainer)
+
+        name.text = tag.name
+        dot.background.setTint(tag.color.toColorInt())
+        date.text = "Created: ${tag.createdAt}"
+        count.text = "Links: ${tag.links.size}"
+
+        linksContainer.removeAllViews()
+
+        tag.links.forEach { tagLink ->
+            val link = tagLink.link
+
+            val tv = TextView(requireContext()).apply {
+                text = link.title ?: link.url
+                textSize = 15f
+                setPadding(0, 8, 0, 8)
+                setTextColor(requireContext().getColor(R.color.purple_300))
+                paint.isUnderlineText = true
+            }
+
+            tv.setOnClickListener {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(link.url))
+                startActivity(intent)
+            }
+
+            linksContainer.addView(tv)
+        }
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setView(view)
+            .setPositiveButton("Edit") { _, _ ->
+                showTagEditDialog(tag)
+            }
+            .setNeutralButton("Delete") { _, _ ->
+                viewModel.deleteTag(tag.id)
+            }
+            .setNegativeButton("Close", null)
+            .show()
+
+        dialog.getButton(DialogInterface.BUTTON_NEUTRAL)
+            .setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark))
     }
 }
