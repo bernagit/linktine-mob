@@ -254,7 +254,7 @@ class CollectionsFragment : Fragment() {
         closeFabButtons()
 
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_link, null)
-        val titleInput = dialogView.findViewById<EditText>(R.id.inputTitle)
+        val titleInput = dialogView.findViewById<EditText>(R.id.inputName)
         val urlInput = dialogView.findViewById<EditText>(R.id.inputUrl)
 
         MaterialAlertDialogBuilder(requireContext())
