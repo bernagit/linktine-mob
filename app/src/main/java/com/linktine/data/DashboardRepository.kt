@@ -41,14 +41,4 @@ class DashboardRepository(
             throw IOException("Could not load dashboard data. Check connection and authentication.")
         }
     }
-
-    suspend fun fetchCollections(): CollectionsResponse {
-        val service = getApiService()
-        return try {
-            service.getCollections()
-        } catch (e: Exception) {
-            println("Collections API call failed: ${e.message}")
-            throw IOException("Could not load collections data. Check connection and authentication.")
-        }
-    }
 }

@@ -1,47 +1,58 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginHorizontal="4dp"
     android:layout_marginBottom="12dp"
-    android:backgroundTint="#FFFFFF"
-    android:elevation="4dp"
-    android:padding="14dp"
-    android:radius="12dp">
+    app:cardCornerRadius="14dp"
+    app:cardElevation="6dp"
+    android:clickable="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="horizontal">
 
-        <!-- Collection Name -->
-        <TextView
-            android:id="@+id/txtCollectionName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Collection Name"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="#111" />
-
-        <!-- Optional color indicator bar -->
+        <!-- Color strip -->
         <View
             android:id="@+id/colorIndicator"
-            android:layout_width="40dp"
-            android:layout_height="4dp"
-            android:layout_marginTop="6dp"
-            android:background="#FF9800"
-            android:visibility="gone" />
+            android:layout_width="6dp"
+            android:layout_height="match_parent"
+            android:background="#FF9800"/>
 
-        <!-- Description -->
-        <TextView
-            android:id="@+id/txtCollectionDescription"
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Description goes here"
-            android:textSize="14sp"
-            android:textColor="#666" />
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/txtCollectionName"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#212121"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <TextView
+                android:id="@+id/txtCollectionDescription"
+                android:layout_marginTop="4dp"
+                android:textSize="14sp"
+                android:textColor="#757575"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+
+            <!-- Links list -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/linksRecyclerView"
+                android:layout_marginTop="12dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"/>
+
+        </LinearLayout>
 
     </LinearLayout>
-
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

@@ -100,5 +100,13 @@ class LinkRepository(
         )
     }
 
-
+    suspend fun moveLinkIntoCollection(linkId: String, collectionId: String?) {
+        val service = getApiService()
+        val collectionId = when(collectionId) {
+            null -> "null"
+            else -> collectionId
+        }
+        val linkUpdate = LinkUpdate(collectionId = collectionId)
+        service.updateLink(linkId, linkUpdate)
+    }
 }
