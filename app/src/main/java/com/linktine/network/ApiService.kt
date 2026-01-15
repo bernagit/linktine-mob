@@ -1,9 +1,11 @@
 package com.linktine.network
 
 import com.linktine.data.types.DashboardResponse
-import com.linktine.data.CollectionsResponse
-import com.linktine.data.DashboardResponse
 import com.linktine.data.UserResponse
+import com.linktine.data.types.Collection
+import com.linktine.data.types.CollectionCreate
+import com.linktine.data.types.CollectionUpdate
+import com.linktine.data.types.CollectionsResponse
 import com.linktine.data.types.Link
 import com.linktine.data.types.LinkCreate
 import com.linktine.data.types.LinkUpdate
@@ -54,7 +56,6 @@ interface ApiService {
     @PUT("v1/links/{id}")
     suspend fun updateLink(@Path("id") id: String, @Body link: LinkUpdate): Link
 
-
     // TAGS FRAGMENT
     @GET("v1/tags")
     suspend fun getTags(): List<Tag>
@@ -70,6 +71,24 @@ interface ApiService {
 
     @PATCH("v1/tags/{id}/links")
     suspend fun updateLinks(@Path("id") id: String, @Body updateTag: TagUpdateLinks)
+
     @GET("v1/collections")
     suspend fun getCollections(): CollectionsResponse
+
+    @GET("v1/collections/{id}")
+    suspend fun getCollectionByParentId(@Path("id") id: String): CollectionsResponse
+
+    @GET("v1/collections/parent")
+    suspend fun getCollectionsByParent(
+        @Query("parentId") parentId: String?
+    ): CollectionsResponse
+
+    @POST("v1/collections")
+    suspend fun createCollection(@Body collection: CollectionCreate): Collection
+
+    @DELETE("v1/collections/{id}")
+    suspend fun deleteCollection(@Path("id") id: String)
+
+    @PUT("v1/collections/{id}")
+    suspend fun updateCollection(@Path("id") id: String, @Body collection: CollectionUpdate): Collection
 }

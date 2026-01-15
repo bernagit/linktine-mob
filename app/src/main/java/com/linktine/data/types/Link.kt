@@ -33,4 +33,5 @@ data class LinkUpdate(
     @SerializedName("read") val read: Boolean? = null,
     @SerializedName("archived") val archived: Boolean? = null,
     @SerializedName("favorite") val favorite: Boolean? = null,
+    @SerializedName("collectionId") val collectionId: String? = "null",
 )

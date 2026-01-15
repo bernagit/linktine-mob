@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.swiperefreshlayout)
     implementation("com.github.skydoves:colorpickerview:2.3.0")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

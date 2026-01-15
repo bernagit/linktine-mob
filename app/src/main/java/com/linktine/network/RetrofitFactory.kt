@@ -27,10 +27,13 @@ object RetrofitFactory {
         // Ensure the base URL ends with a '/' for Retrofit
         val finalBaseUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
 
+        val gson = GsonBuilder()
+            .create()
+
         val retrofit = Retrofit.Builder()
             .baseUrl(finalBaseUrl)
             .client(createOkHttpClient(context))
-            .addConverterFactory(GsonConverterFactory.create(GsonBuilder().create()))
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
 
         return retrofit.create(ApiService::class.java)
