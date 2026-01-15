@@ -30,7 +30,8 @@ class LinkViewModel(
         tag: String? = null,
         collectionId: String? = null,
         read: Boolean? = null,
-        archived: Boolean? = null
+        archived: Boolean? = null,
+        favorite: Boolean? = null
     ) {
         viewModelScope.launch {
             try {
@@ -43,6 +44,7 @@ class LinkViewModel(
                     collectionId = collectionId,
                     read = read,
                     archived = archived,
+                    favorite = favorite
                 )
                 _linkData.value = result
                 _status.value = "Loaded ${result.data.size} links (Total: ${result.total})"

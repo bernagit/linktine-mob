@@ -10,11 +10,24 @@
         android:id="@+id/popupFilterRead"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/read"/>
+        android:text="@string/read"
+        android:textColor="?attr/colorOnSurface"
+        android:buttonTint="?attr/colorPrimary"/>
 
     <CheckBox
         android:id="@+id/popupFilterArchived"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/archived"/>
+        android:text="@string/archived"
+        android:textColor="?attr/colorOnSurface"
+        android:buttonTint="?attr/colorPrimary"/>
+
+    <CheckBox
+        android:id="@+id/popupFilterFavorited"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/favorite"
+        android:textColor="?attr/colorOnSurface"
+        android:buttonTint="?attr/colorPrimary"/>
+
 </LinearLayout>

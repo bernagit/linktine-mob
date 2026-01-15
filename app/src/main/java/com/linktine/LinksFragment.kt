@@ -20,6 +20,7 @@ import com.linktine.databinding.FragmentLinksBinding
 import com.linktine.viewmodel.LinkViewModel
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Button
@@ -55,6 +56,8 @@ class LinksFragment : Fragment() {
     // Three-state filter variables
     private var readFilter: Boolean? = null
     private var archivedFilter: Boolean? = null
+    private var favoritedFilter: Boolean? = null
+
     private var _binding: FragmentLinksBinding? = null
     private val binding get() = _binding!!
 
@@ -117,17 +120,19 @@ class LinksFragment : Fragment() {
 
             val readCheckbox = popupView.findViewById<CheckBox>(R.id.popupFilterRead)
             val archivedCheckbox = popupView.findViewById<CheckBox>(R.id.popupFilterArchived)
+            val favoritedCheckbox = popupView.findViewById<CheckBox>(R.id.popupFilterFavorited)
 
             fun setupThreeState(checkbox: CheckBox, value: Boolean?) {
                 when (value) {
                     null -> { checkbox.isChecked = false; checkbox.alpha = 0.5f }
                     true -> { checkbox.isChecked = true; checkbox.alpha = 1f }
-                    false -> { checkbox.isChecked = true; checkbox.alpha = 0.5f } // visually indicate "false"
+                    false -> { checkbox.isChecked = true; checkbox.alpha = 0.5f }
                 }
             }
 
             setupThreeState(readCheckbox, readFilter)
             setupThreeState(archivedCheckbox, archivedFilter)
+            setupThreeState(favoritedCheckbox, favoritedFilter)
 
             // Click cycle through null -> true -> false
             readCheckbox.setOnClickListener {
@@ -150,11 +155,22 @@ class LinksFragment : Fragment() {
                 triggerReload()
             }
 
+            favoritedCheckbox.setOnClickListener {
+                favoritedFilter = when (favoritedFilter) {
+                    null -> true
+                    true -> false
+                    false -> null
+                }
+                setupThreeState(favoritedCheckbox, favoritedFilter)
+                triggerReload()
+            }
+
             // Apply filter when popup dismissed
             popup.setOnDismissListener {
                 triggerReload(
                     read = readFilter,
-                    archived = archivedFilter
+                    archived = archivedFilter,
+                    favorite = favoritedFilter
                 )
             }
 
@@ -166,14 +182,17 @@ class LinksFragment : Fragment() {
     private fun triggerReload(
         query: String? = binding.searchQuery.text.toString().trim().ifEmpty { null },
         read: Boolean? = readFilter,
-        archived: Boolean? = archivedFilter
+        archived: Boolean? = archivedFilter,
+        favorite: Boolean? = favoritedFilter
     ) {
+        Log.d("LinksFragment", "Triggering reload with query: $query, read: $read, archived: $archived, favorite: $favorite")
         linkViewModel.loadInitialLinks(
             page = 1,
             limit = 20,
             query = query,
             read = read,
-            archived = archived
+            archived = archived,
+            favorite = favorite
         )
     }
 
@@ -310,16 +329,43 @@ class LinksFragment : Fragment() {
         buttonRead.setOnClickListener {
             readSelected = !readSelected
             setButtonSelected(buttonRead, readSelected, ContextCompat.getColor(requireContext(), R.color.teal_300))
+
+            linkViewModel.updateLink(
+                id = link.id,
+                name = inputName.text.toString(),
+                url = inputUrl.text.toString(),
+                read = readSelected,
+                archived = archivedSelected,
+                favorite = favoriteSelected
+            )
         }
 
         buttonArchived.setOnClickListener {
             archivedSelected = !archivedSelected
             setButtonSelected(buttonArchived, archivedSelected, ContextCompat.getColor(requireContext(), R.color.gray_300))
+
+            linkViewModel.updateLink(
+                id = link.id,
+                name = inputName.text.toString(),
+                url = inputUrl.text.toString(),
+                read = readSelected,
+                archived = archivedSelected,
+                favorite = favoriteSelected
+            )
         }
 
         buttonFavorite.setOnClickListener {
             favoriteSelected = !favoriteSelected
             setButtonSelected(buttonFavorite, favoriteSelected, ContextCompat.getColor(requireContext(), R.color.orange_500))
+
+            linkViewModel.updateLink(
+                id = link.id,
+                name = inputName.text.toString(),
+                url = inputUrl.text.toString(),
+                read = readSelected,
+                archived = archivedSelected,
+                favorite = favoriteSelected
+            )
         }
 
 

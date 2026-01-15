@@ -21,6 +21,7 @@ import com.linktine.data.types.Tag
 import com.linktine.viewmodel.TagViewModel
 import com.skydoves.colorpickerview.ColorPickerView
 import androidx.core.net.toUri
+import androidx.core.widget.addTextChangedListener
 
 class TagsFragment : Fragment() {
 
@@ -65,25 +66,57 @@ class TagsFragment : Fragment() {
     private fun showTagEditDialog(tag: Tag? = null) {
 
         val dialogLayout = layoutInflater.inflate(R.layout.dialog_color_picker, null, false)
-        val input = dialogLayout.findViewById<EditText>(R.id.inputTagName)
-        val colorPickerView = dialogLayout.findViewById<ColorPickerView>(R.id.colorPickerView)
 
-        input.setText(tag?.name)
+        val inputName = dialogLayout.findViewById<EditText>(R.id.inputTagName)
+        val inputHex = dialogLayout.findViewById<EditText>(R.id.inputHex)
+        val preview = dialogLayout.findViewById<View>(R.id.colorPreview)
+        val colorPickerView = dialogLayout.findViewById<ColorPickerView>(R.id.colorPickerView)
+        var isUpdatingFromPicker = false
+        inputName.setText(tag?.name)
+
 
         var selectedColor = tag?.color?.toColorInt() ?: "#2196F3".toColorInt()
 
+        fun updateUI(color: Int) {
+            selectedColor = color
+            preview.setBackgroundColor(color)
+            inputHex.setText(String.format("#%06X", 0xFFFFFF and color))
+        }
+
+        // initial
         colorPickerView.setInitialColor(selectedColor)
+        updateUI(selectedColor)
+
+        // picker -> hex + preview
         colorPickerView.setColorListener(object : com.skydoves.colorpickerview.listeners.ColorListener {
             override fun onColorSelected(color: Int, fromUser: Boolean) {
                 selectedColor = color
+
+                isUpdatingFromPicker = true
+                updateUI(color)
+                isUpdatingFromPicker = false
             }
         })
 
-         val dialog = MaterialAlertDialogBuilder(requireContext())
+
+        // hex -> picker + preview
+        inputHex.addTextChangedListener {
+            if (isUpdatingFromPicker) return@addTextChangedListener
+
+            val text = it.toString()
+            if (text.matches(Regex("^#[0-9A-Fa-f]{6}$"))) {
+                val color = text.toColorInt()
+                selectedColor = color
+                preview.setBackgroundColor(color)
+                colorPickerView.setInitialColor(color)
+            }
+        }
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(if (tag == null) "New tag" else "Edit tag")
             .setView(dialogLayout)
             .setPositiveButton("Save") { _, _ ->
-                val name = input.text.toString().trim()
+                val name = inputName.text.toString().trim()
                 if (name.isEmpty()) return@setPositiveButton
 
                 val hexColor = String.format("#%06X", 0xFFFFFF and selectedColor)
@@ -103,10 +136,8 @@ class TagsFragment : Fragment() {
             }
             .show()
 
-
         dialog.getButton(DialogInterface.BUTTON_NEUTRAL)
             .setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark))
-
     }
 
     // ---------------- DETAIL DIALOG ----------------

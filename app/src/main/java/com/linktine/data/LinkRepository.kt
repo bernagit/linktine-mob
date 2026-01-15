@@ -40,10 +40,11 @@ class LinkRepository(
         collectionId: String? = null,
         read: Boolean? = null,
         archived: Boolean? = null,
+        favorite: Boolean? = null
     ): PaginatedResponse<Link> {
         val service = getApiService()
         return try {
-            service.getLinks(page, limit, query, tag, collectionId, read, archived)
+            service.getLinks(page, limit, query, tag, collectionId, read, archived, favorite)
         } catch (e: Exception) {
             println("Link API call failed: ${e.message}")
             throw IOException("Could not load links.")

@@ -41,7 +41,8 @@ interface ApiService {
         @Query("tag") tag: String? = null,
         @Query("collectionId") collectionId: String? = null,
         @Query("read") read: Boolean? = null,
-        @Query("archived") archived: Boolean? = null
+        @Query("archived") archived: Boolean? = null,
+        @Query("favorite") favorite: Boolean? = null
     ): PaginatedResponse<Link>
 
     @POST("v1/links")
