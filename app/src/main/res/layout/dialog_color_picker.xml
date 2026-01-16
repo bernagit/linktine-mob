@@ -4,6 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
+    <EditText
+        android:id="@+id/inputTagName"
+        android:hint="Tag name"
+        android:layout_width="match_parent"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -11,11 +18,13 @@
         android:gravity="center_vertical">
 
         <EditText
-            android:id="@+id/inputTagName"
-            android:hint="Tag name"
+            android:id="@+id/inputHex"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:hint="#RRGGBB"
+            android:inputType="textCapCharacters"
+            android:maxLength="7" />
 
         <View
             android:id="@+id/colorPreview"
@@ -25,17 +34,6 @@
             android:background="@drawable/bg_color_preview"/>
 
     </LinearLayout>
-
-    <!-- Hex input -->
-
-    <EditText
-        android:id="@+id/inputHex"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:hint="#RRGGBB"
-        android:inputType="textCapCharacters"
-        android:maxLength="7" />
 
     <com.skydoves.colorpickerview.ColorPickerView
         android:id="@+id/colorPickerView"

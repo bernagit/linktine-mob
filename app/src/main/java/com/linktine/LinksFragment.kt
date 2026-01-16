@@ -20,7 +20,6 @@ import com.linktine.databinding.FragmentLinksBinding
 import com.linktine.viewmodel.LinkViewModel
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Button
@@ -39,10 +38,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import androidx.core.graphics.toColorInt
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.textfield.TextInputEditText
 import com.linktine.viewmodel.TagViewModel
+import com.linktine.ui.links.LinksAdapter
+import com.linktine.data.types.PaginatedResponse
 
 class LinksFragment : Fragment() {
 
@@ -56,10 +57,12 @@ class LinksFragment : Fragment() {
     // Three-state filter variables
     private var readFilter: Boolean? = null
     private var archivedFilter: Boolean? = null
-    private var favoritedFilter: Boolean? = null
+    private var favoriteFilter: Boolean? = null
 
     private var _binding: FragmentLinksBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var adapter: LinksAdapter
 
     private fun openUrl(url: String) {
         startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
@@ -96,6 +99,14 @@ class LinksFragment : Fragment() {
             showAddLinkDialog()
         }
 
+        adapter = LinksAdapter(
+            onClick = { link -> openUrl(link.url) },
+            onLongClick = { link -> showLinkDetailsDialog(link) }
+        )
+
+        binding.linksRecycler.layoutManager = LinearLayoutManager(requireContext())
+        binding.linksRecycler.adapter = adapter
+
         // Observers
         linkViewModel.linkData.observe(viewLifecycleOwner) {
             renderLinks(it)
@@ -103,7 +114,6 @@ class LinksFragment : Fragment() {
         }
 
         linkViewModel.error.observe(viewLifecycleOwner) {
-            renderError(it)
             binding.linksSwipe.isRefreshing = false
         }
         tagViewModel.loadTags()
@@ -120,7 +130,7 @@ class LinksFragment : Fragment() {
 
             val readCheckbox = popupView.findViewById<CheckBox>(R.id.popupFilterRead)
             val archivedCheckbox = popupView.findViewById<CheckBox>(R.id.popupFilterArchived)
-            val favoritedCheckbox = popupView.findViewById<CheckBox>(R.id.popupFilterFavorited)
+            val favoriteCheckbox = popupView.findViewById<CheckBox>(R.id.popupFilterFavorited)
 
             fun setupThreeState(checkbox: CheckBox, value: Boolean?) {
                 when (value) {
@@ -132,7 +142,7 @@ class LinksFragment : Fragment() {
 
             setupThreeState(readCheckbox, readFilter)
             setupThreeState(archivedCheckbox, archivedFilter)
-            setupThreeState(favoritedCheckbox, favoritedFilter)
+            setupThreeState(favoriteCheckbox, favoriteFilter)
 
             // Click cycle through null -> true -> false
             readCheckbox.setOnClickListener {
@@ -155,13 +165,13 @@ class LinksFragment : Fragment() {
                 triggerReload()
             }
 
-            favoritedCheckbox.setOnClickListener {
-                favoritedFilter = when (favoritedFilter) {
+            favoriteCheckbox.setOnClickListener {
+                favoriteFilter = when (favoriteFilter) {
                     null -> true
                     true -> false
                     false -> null
                 }
-                setupThreeState(favoritedCheckbox, favoritedFilter)
+                setupThreeState(favoriteCheckbox, favoriteFilter)
                 triggerReload()
             }
 
@@ -170,7 +180,7 @@ class LinksFragment : Fragment() {
                 triggerReload(
                     read = readFilter,
                     archived = archivedFilter,
-                    favorite = favoritedFilter
+                    favorite = favoriteFilter
                 )
             }
 
@@ -183,9 +193,8 @@ class LinksFragment : Fragment() {
         query: String? = binding.searchQuery.text.toString().trim().ifEmpty { null },
         read: Boolean? = readFilter,
         archived: Boolean? = archivedFilter,
-        favorite: Boolean? = favoritedFilter
+        favorite: Boolean? = favoriteFilter
     ) {
-        Log.d("LinksFragment", "Triggering reload with query: $query, read: $read, archived: $archived, favorite: $favorite")
         linkViewModel.loadInitialLinks(
             page = 1,
             limit = 20,
@@ -455,34 +464,8 @@ class LinksFragment : Fragment() {
         }
     }
 
-    @SuppressLint("SetTextI18n")
-    private fun renderError(msg: String) {
-        val container = binding.linksContainer
-        container.removeAllViews()
-        container.addView(
-            TextView(requireContext()).apply {
-                text = "Error: $msg"
-                setTextColor(ContextCompat.getColor(context, android.R.color.holo_red_dark))
-                textSize = 16f
-            }
-        )
-    }
-
-    private fun renderLinks(response: com.linktine.data.types.PaginatedResponse<com.linktine.data.types.Link>) {
-        val container = binding.linksContainer
-        container.removeAllViews()
-
-        if (response.data.isEmpty()) {
-            container.addView(TextView(requireContext()).apply {
-                text = "No links yet."
-                textSize = 16f
-            })
-            return
-        }
-
-        response.data.forEach { link ->
-            container.addView(createLinkCard(link))
-        }
+    private fun renderLinks(response: PaginatedResponse<Link>) {
+        adapter.submit(response.data)
     }
 
     private fun createLinkCard(link: Link): View {

@@ -12,7 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.linktine.R
 import com.linktine.data.types.Collection
-import com.linktine.data.Link
+import com.linktine.data.types.Link
 
 // Sealed class already defined
 sealed class CollectionListItem {

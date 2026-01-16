@@ -1,7 +1,6 @@
 package com.linktine.data.types
 
 import com.google.gson.annotations.SerializedName
-import com.linktine.data.Link
 import java.util.Date
 
 data class Collection (

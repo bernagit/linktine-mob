@@ -26,7 +26,8 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 app:boxStrokeColor="@color/teal_300"
                 app:boxStrokeWidth="2dp"
-                app:hintTextColor="@color/teal_300">
+                app:hintTextColor="@color/teal_300"
+                android:layout_marginBottom="16dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/searchQuery"
@@ -44,6 +45,7 @@
                 android:layout_height="wrap_content"
                 android:text="Filters"
                 android:layout_marginStart="8dp"
+                android:layout_marginBottom="16dp"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
         </LinearLayout>
 
@@ -53,17 +55,11 @@
             android:layout_height="0dp"
             android:layout_weight="1">
 
-            <ScrollView
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/linksRecycler"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"/>
 
-                <LinearLayout
-                    android:id="@+id/links_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-
-            </ScrollView>
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
