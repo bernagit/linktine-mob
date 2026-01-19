@@ -20,14 +20,16 @@ class LinkRepository(
 
     // Ensures Retrofit always uses the current server URL/token
     private suspend fun getApiService(): ApiService {
-        val serverInfo = settingsRepository.serverInfoFlow.first()
-        if (serverInfo.url.isEmpty() || serverInfo.token.isEmpty()) {
-            throw IllegalStateException("Server settings (URL and Token) are not configured.")
+        val profile = settingsRepository.getActiveProfile()
+
+        if (profile.serverUrl.isEmpty() || profile.token.isEmpty()) {
+            throw IllegalStateException("Active profile is not configured.")
         }
 
-        val apiUrl = "${serverInfo.url}/api"
-        return RetrofitFactory.createApiService(context, apiUrl)
+        val apiUrl = "${profile.serverUrl}/api"
+        return RetrofitFactory.createApiService(settingsRepository, apiUrl)
     }
+
 
     /**
      * Fetches paginated links from the server.

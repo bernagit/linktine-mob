@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.linktine.data.types.UserProfile
 import com.linktine.network.RetrofitFactory
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -15,44 +16,37 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 
-// Assuming DataStore setup here
+// DataStore
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-class SettingsRepository(private val context: Context) {
+class SettingsRepository(val context: Context) {
 
     private object PreferencesKeys {
-        val SERVER_URL = stringPreferencesKey("server_url")
-        val SERVER_TOKEN = stringPreferencesKey("server_token")
+        val ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
     }
 
-    suspend fun saveSettings(url: String, token: String) {
-        context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.SERVER_URL] = url
-            preferences[PreferencesKeys.SERVER_TOKEN] = token
+    // -------------------- ACTIVE PROFILE --------------------
+
+    suspend fun setActiveProfile(profileId: String) {
+        context.dataStore.edit {
+            it[PreferencesKeys.ACTIVE_PROFILE_ID] = profileId
         }
     }
 
-    val serverInfoFlow: Flow<ServerInfo> = context.dataStore.data
-        .map { preferences ->
-            val url = preferences[PreferencesKeys.SERVER_URL] ?: ""
-            val token = preferences[PreferencesKeys.SERVER_TOKEN] ?: ""
-            ServerInfo(url, token)
-        }
-
-    /**
-     * Reads the current ServerInfo as a single value (non-Flow) synchronously.
-     * This is the function that resolves the 'Unresolved reference' error in the ViewModel.
-     */
-    suspend fun getCurrentServerInfo(): ServerInfo {
-        return serverInfoFlow.first()
+    suspend fun getActiveProfileId(): String {
+        return context.dataStore.data.first()[PreferencesKeys.ACTIVE_PROFILE_ID] ?: ""
     }
 
-    val areSettingsPresent: Flow<Boolean> = serverInfoFlow.map { info ->
-        info.url.isNotEmpty() && info.token.isNotEmpty()
+    val areSettingsPresent: Flow<Boolean> = context.dataStore.data.map {
+        it[PreferencesKeys.ACTIVE_PROFILE_ID]?.isNotEmpty() == true
     }
+
+    val activeProfileFlow: Flow<String> = context.dataStore.data
+        .map { it[PreferencesKeys.ACTIVE_PROFILE_ID] ?: "" }
+
+    // -------------------- LOGIN --------------------
 
     suspend fun saveSettingsAndLogin(url: String, token: String): String {
-        saveSettings(url, token)
         return performNetworkValidationAndUserSave(url, token)
     }
 
@@ -63,7 +57,7 @@ class SettingsRepository(private val context: Context) {
     private suspend fun performNetworkValidationAndUserSave(url: String, token: String): String {
         return try {
             val apiUrl = "$url/api"
-            val authService = RetrofitFactory.createApiService(context, apiUrl)
+            val authService = RetrofitFactory.createApiService(this, apiUrl)
 
             val userResponse = authService.getMeWithAuthToken("Apikey $token")
 
@@ -74,7 +68,9 @@ class SettingsRepository(private val context: Context) {
                 put("role", userResponse.role)
             }
 
-            saveUser(userJson, token)
+            saveUser(userJson, token, url)
+            setActiveProfile(userResponse.id)
+
             userResponse.name
 
         } catch (e: retrofit2.HttpException) {
@@ -85,8 +81,9 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
+    // -------------------- USER STORAGE --------------------
 
-    private fun saveUser(json: JSONObject, token: String) {
+    private fun saveUser(json: JSONObject, token: String, serverUrl: String) {
         val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
 
         val usersArray = try {
@@ -102,6 +99,7 @@ class SettingsRepository(private val context: Context) {
             put("email", json.optString("email"))
             put("name", json.optString("name"))
             put("role", json.optString("role"))
+            put("serverUrl", serverUrl)
             put("token", token)
         }
 
@@ -121,7 +119,55 @@ class SettingsRepository(private val context: Context) {
 
         prefs.edit {
             putString("users", usersArray.toString())
-            putString("activeUser", userId)
+        }
+    }
+
+    // -------------------- READ USERS --------------------
+
+    fun getAllProfiles(): List<UserProfile> {
+        val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
+        val usersArray = JSONArray(prefs.getString("users", "[]"))
+
+        val list = mutableListOf<UserProfile>()
+
+        for (i in 0 until usersArray.length()) {
+            val u = usersArray.getJSONObject(i)
+            list.add(
+                UserProfile(
+                    id = u.optString("id"),
+                    serverUrl = u.optString("serverUrl"),
+                    token = u.optString("token"),
+                    email = u.optString("email"),
+                    name = u.optString("name"),
+                    role = u.optString("role")
+                )
+            )
+        }
+        return list
+    }
+
+    suspend fun getActiveProfile(): UserProfile {
+        val id = getActiveProfileId()
+        return getAllProfiles().first { it.id == id }
+    }
+
+    // -------------------- DELETE PROFILE --------------------
+
+    fun deleteProfile(profileId: String) {
+        val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
+        val usersArray = JSONArray(prefs.getString("users", "[]"))
+
+        val newArray = JSONArray()
+
+        for (i in 0 until usersArray.length()) {
+            val obj = usersArray.getJSONObject(i)
+            if (obj.optString("id") != profileId) {
+                newArray.put(obj)
+            }
+        }
+
+        prefs.edit {
+            putString("users", newArray.toString())
         }
     }
 }

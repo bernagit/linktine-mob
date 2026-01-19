@@ -16,13 +16,14 @@ class CollectionRepository(
 ) {
 
     private suspend fun getApiService(): ApiService {
-        val serverInfo = settingsRepository.serverInfoFlow.first()
-        if (serverInfo.url.isEmpty() || serverInfo.token.isEmpty()) {
-            throw IllegalStateException("Server settings (URL and Token) are not configured.")
+        val profile = settingsRepository.getActiveProfile()
+
+        if (profile.serverUrl.isEmpty() || profile.token.isEmpty()) {
+            throw IllegalStateException("Active profile is not configured.")
         }
 
-        val apiUrl = "${serverInfo.url}/api"
-        return RetrofitFactory.createApiService(context, apiUrl)
+        val apiUrl = "${profile.serverUrl}/api"
+        return RetrofitFactory.createApiService(settingsRepository, apiUrl)
     }
 
     suspend fun fetchCollections(parentId: String?): CollectionsResponse {

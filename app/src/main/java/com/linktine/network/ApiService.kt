@@ -1,7 +1,7 @@
 package com.linktine.network
 
 import com.linktine.data.types.DashboardResponse
-import com.linktine.data.UserResponse
+import com.linktine.data.types.UserResponse
 import com.linktine.data.types.Collection
 import com.linktine.data.types.CollectionCreate
 import com.linktine.data.types.CollectionUpdate

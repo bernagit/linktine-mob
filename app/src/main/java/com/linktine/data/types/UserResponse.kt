@@ -1,4 +1,4 @@
-package com.linktine.data
+package com.linktine.data.types
 
 import com.google.gson.annotations.SerializedName
 
@@ -13,5 +13,14 @@ data class UserResponse(
     @SerializedName("name")
     val name: String,
     @SerializedName("role")
+    val role: String
+)
+
+data class UserProfile(
+    val id: String,
+    val serverUrl: String,
+    val token: String,
+    val email: String,
+    val name: String,
     val role: String
 )

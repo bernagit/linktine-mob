@@ -17,38 +17,31 @@ import com.linktine.viewmodel.SettingsViewModel
 import com.linktine.viewmodel.SettingsViewModelFactory
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
-import com.linktine.R
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class AuthFragment : Fragment() {
 
-    // --- MVVM Setup ---
     private val viewModel: SettingsViewModel by viewModels {
-        // This is the factory producer lambda
         SettingsViewModelFactory(requireContext().applicationContext)
     }
 
-    // --- View References (using nullable properties is okay here) ---
     private var serverUrlInput: TextInputEditText? = null
     private var tokenInput: TextInputEditText? = null
     private var btnSave: MaterialButton? = null
     private var btnScanQR: MaterialButton? = null
 
-    // --- QR Scanner Launcher (Adapting your Activity code to Fragment) ---
     private val qrScanLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == AppCompatActivity.RESULT_OK) {
             val scanned = result.data?.getStringExtra("scanned_token")
-
             if (!scanned.isNullOrEmpty()) {
                 val parts = scanned.split("|")
                 if (parts.size == 2) {
-                    // Update input fields with scanned data
-                    serverUrlInput?.setText(parts[0].trim())
-                    tokenInput?.setText(parts[1].trim())
+                    val url = parts[0].trim()
+                    val token = parts[1].trim()
                     Toast.makeText(requireContext(), "QR parsed successfully", Toast.LENGTH_SHORT).show()
+                    viewModel.saveSettingsAndLogin(url, token)
                 } else {
                     Toast.makeText(requireContext(), "Invalid QR format, expected: url|token", Toast.LENGTH_LONG).show()
                 }
@@ -56,77 +49,62 @@ class AuthFragment : Fragment() {
         }
     }
 
-    // --- Fragment Lifecycle ---
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the new XML layout
         return inflater.inflate(R.layout.fragment_auth, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize view references (Fixing the "Unresolved reference" issue)
         serverUrlInput = view.findViewById(R.id.editServerUrl)
         tokenInput = view.findViewById(R.id.editToken)
-        btnSave = view.findViewById(R.id.btnLogin) // Using btnLogin ID from XML
+        btnSave = view.findViewById(R.id.btnLogin)
         btnScanQR = view.findViewById(R.id.btnScanQR)
 
         setupListeners()
         setupObservers()
-
-        // Load saved values into the input fields (optional)
-        loadSavedValues()
     }
-
-    private fun loadSavedValues() {
-        // You would typically load this data from the ViewModel (or Repository via ViewModel)
-        // Skipping pre-fill for brevity, focusing on the core logic.
-    }
-
 
     private fun setupListeners() {
-        // 1. Save Button Click
         btnSave?.setOnClickListener {
             val url = serverUrlInput?.text.toString().trim()
             val token = tokenInput?.text.toString().trim()
-
-            // Call the ViewModel's save AND login function
             viewModel.saveSettingsAndLogin(url, token)
         }
 
-        // 2. QR Scan Button Click
         btnScanQR?.setOnClickListener {
-            // NOTE: You must have the QrScannerActivity class in your project
             val intent = Intent(requireContext(), QrScannerActivity::class.java)
             qrScanLauncher.launch(intent)
         }
     }
 
     private fun setupObservers() {
-        // 1. Initial check: If settings are present, attempt to validate them by calling getMe().
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.areSettingsPresent.collectLatest { isPresent ->
-                if (isPresent) {
-                    viewModel.validateCurrentSettingsAndLogin()
+        // Read argument to know if we are adding a new account
+        val forceAddAccount = arguments?.getBoolean("forceAddAccount", false) ?: false
+
+        if (!forceAddAccount) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                viewModel.areSettingsPresent.collect { isPresent ->
+                    if (isPresent) {
+                        viewModel.validateCurrentSettingsAndLogin()
+                    }
                 }
             }
         }
 
-        // 2. Events from ViewModel (Login status, Errors)
+        // Listen to one-time events
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.events.collectLatest { event ->
+            viewModel.events.collect { event ->
                 when (event) {
                     is SettingsEvent.SettingsSavedSuccess -> {
                         Toast.makeText(requireContext(), event.message, Toast.LENGTH_SHORT).show()
-                        navigateToHome() // Navigate upon successful login/save OR successful validation
+                        navigateToHome()
                     }
                     is SettingsEvent.Error -> {
                         Toast.makeText(requireContext(), event.message, Toast.LENGTH_LONG).show()
-                        // Stays on this fragment if there's an error, as requested.
                     }
                 }
             }
@@ -134,13 +112,11 @@ class AuthFragment : Fragment() {
     }
 
     private fun navigateToHome() {
-        // R.id.homeFragment is the destination ID in your nav_graph.xml
         findNavController().navigate(R.id.homeFragment)
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Clear references to prevent memory leaks
         serverUrlInput = null
         tokenInput = null
         btnSave = null

@@ -2,6 +2,7 @@ package com.linktine.network
 
 import android.content.Context
 import com.google.gson.GsonBuilder
+import com.linktine.data.SettingsRepository
 import com.linktine.utils.AuthInterceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -12,27 +13,18 @@ object RetrofitFactory {
     /**
      * Creates and returns the OkHttpClient with the AuthInterceptor.
      */
-    private fun createOkHttpClient(context: Context): OkHttpClient {
+    private fun createOkHttpClient(repository: SettingsRepository): OkHttpClient {
         return OkHttpClient.Builder()
-            // AuthInterceptor reads the token and injects the Authorization header
-            .addInterceptor(AuthInterceptor(context))
+            .addInterceptor(AuthInterceptor(repository))
             .build()
     }
 
-    /**
-     * Creates the Retrofit service instance with the dynamic base URL.
-     * @param baseUrl The base API URL (e.g., "https://server.com/api")
-     */
-    fun createApiService(context: Context, baseUrl: String): ApiService {
-        // Ensure the base URL ends with a '/' for Retrofit
+    fun createApiService(repository: SettingsRepository, baseUrl: String): ApiService {
         val finalBaseUrl = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
-
-        val gson = GsonBuilder()
-            .create()
-
+        val gson = GsonBuilder().create()
         val retrofit = Retrofit.Builder()
             .baseUrl(finalBaseUrl)
-            .client(createOkHttpClient(context))
+            .client(createOkHttpClient(repository))
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
 

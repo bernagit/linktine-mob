@@ -17,15 +17,18 @@ class DashboardRepository(
 
     // Lazily gets the API service when needed, ensuring the base URL is current.
     private suspend fun getApiService(): ApiService {
-        val serverInfo = settingsRepository.serverInfoFlow.first()
-        if (serverInfo.url.isEmpty() || serverInfo.token.isEmpty()) {
-            throw IllegalStateException("Server settings (URL and Token) are not configured.")
+        val profile = try {
+            settingsRepository.getActiveProfile()
+        } catch (e: NoSuchElementException) {
+            throw IllegalStateException("No active profile yet")
         }
 
-        // The API path should include /api as per the base URL expectation.
-        val apiUrl = "${serverInfo.url}/api"
+        if (profile.serverUrl.isEmpty() || profile.token.isEmpty()) {
+            throw IllegalStateException("Active profile is not configured")
+        }
 
-        return RetrofitFactory.createApiService(context, apiUrl)
+        val apiUrl = "${profile.serverUrl}/api"
+        return RetrofitFactory.createApiService(settingsRepository, apiUrl)
     }
 
     /**
