@@ -18,7 +18,7 @@ class ProfileAdapter(
     private var activeProfileId: String = "" // Active profile ID
 ) : RecyclerView.Adapter<ProfileAdapter.VH>() {
 
-    inner class VH(v: View) : RecyclerView.ViewHolder(v) {
+    class VH(v: View) : RecyclerView.ViewHolder(v) {
         val name: TextView = v.findViewById(R.id.tvProfileName)
         val deleteBtn: ImageButton = v.findViewById(R.id.btnDeleteProfile)
     }

@@ -136,5 +136,8 @@ class SettingsRepository(private val context: Context) {
                 put("token", it.token)
             }
         }).toString())
+        if (users.isNotEmpty()) {
+            setActiveProfile(users.first().id)
+        }
     }
 }

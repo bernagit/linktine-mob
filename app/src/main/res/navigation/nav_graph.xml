@@ -32,7 +32,7 @@
         tools:layout="@layout/fragment_tags" />
     <fragment
         android:id="@+id/favoritesFragment"
-        android:name="com.linktine.FavoritesFragment"
+        android:name="com.linktine.ProfileFragment"
         android:label="fragment_favorites"
-        tools:layout="@layout/fragment_favorites" />
+        tools:layout="@layout/fragment_profile" />
 </navigation>

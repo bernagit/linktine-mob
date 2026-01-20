@@ -4,9 +4,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/coordinatorLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface">
 
-    <!-- SwipeRefreshLayout with your content -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/homeSwipeRefresh"
         android:layout_width="match_parent"
@@ -19,7 +19,6 @@
             android:orientation="vertical"
             android:paddingTop="40dp">
 
-            <!-- Current Collection Header -->
             <TextView
                 android:id="@+id/txtCurrentCollection"
                 android:layout_width="match_parent"
@@ -27,7 +26,7 @@
                 android:text="Root"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="#212121"
+                android:textColor="?android:textColorPrimary"
                 android:paddingBottom="16dp"/>
 
             <com.google.android.material.card.MaterialCardView
@@ -35,10 +34,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="8dp"
+                android:visibility="gone"
                 app:cardCornerRadius="14dp"
+                app:cardBackgroundColor="?attr/colorSurface"
                 app:strokeWidth="2dp"
-                app:strokeColor="?attr/colorOnSurface"
-                android:visibility="gone">
+                app:strokeColor="?attr/colorPrimary">
 
                 <FrameLayout
                     android:layout_width="match_parent"
@@ -51,13 +51,13 @@
                         android:textSize="20sp"
                         android:textStyle="bold"
                         android:textAlignment="center"
+                        android:textColor="?android:textColorPrimary"
                         android:layout_marginVertical="30dp" />
 
                 </FrameLayout>
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Collections RecyclerView -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/collectionsRecyclerView"
                 android:layout_width="match_parent"
@@ -74,7 +74,7 @@
         android:id="@+id/fabScrim"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#33000000"
+        android:background="#66000000"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true"/>
@@ -89,8 +89,8 @@
         app:cardCornerRadius="16dp"
         app:cardElevation="8dp"
         app:strokeWidth="2dp"
-        app:strokeColor="#D32F2F"
-        app:cardBackgroundColor="#FFEBEE">
+        app:strokeColor="?attr/colorError"
+        app:cardBackgroundColor="?attr/colorSurface">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -103,20 +103,19 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_tag"
-                app:tint="#D32F2F" />
+                app:tint="?attr/colorError" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:text="Delete"
-                android:textColor="#D32F2F"
+                android:textColor="?attr/colorError"
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
-
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabMain"
@@ -124,10 +123,8 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="Add"
-        app:fabSize="normal"
         app:srcCompat="@android:drawable/ic_input_add"
-        app:backgroundTint="@color/teal_500"/>
+        app:backgroundTint="?attr/colorPrimary"/>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddCollection"
@@ -136,9 +133,8 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:visibility="gone"
-        android:contentDescription="Add Collection"
         app:srcCompat="@drawable/outline_create_new_folder"
-        app:backgroundTint="@color/teal_200"/>
+        app:backgroundTint="?attr/colorPrimary"/>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddLink"
@@ -147,8 +143,7 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:visibility="gone"
-        android:contentDescription="Add Link"
         app:srcCompat="@drawable/outline_add_link"
-        app:backgroundTint="@color/teal_200"/>
+        app:backgroundTint="?attr/colorPrimary"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,3 +1,5 @@
+package com.linktine.ui.tags
+
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.View
@@ -22,9 +24,9 @@ class TagsAdapter(
         notifyDataSetChanged()
     }
 
-    inner class TagVH(view: View) : RecyclerView.ViewHolder(view) {
-        val name = view.findViewById<TextView>(R.id.tagName)
-        val dot = view.findViewById<View>(R.id.colorDot)
+    class TagVH(view: View) : RecyclerView.ViewHolder(view) {
+        val name: TextView? = view.findViewById<TextView>(R.id.tagName)
+        val dot: View? = view.findViewById<View>(R.id.colorDot)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TagVH {
@@ -36,15 +38,15 @@ class TagsAdapter(
     override fun onBindViewHolder(holder: TagVH, position: Int) {
         val tag = items[position]
 
-        holder.name.text = tag.name
-        holder.dot.background.setTint(tag.color.toColorInt())
+        holder.name?.text = tag.name
+        holder.dot?.background?.setTint(tag.color.toColorInt())
 
         holder.itemView.setOnClickListener {
-            onClick(tag)          // SHORT CLICK
+            onClick(tag)
         }
 
         holder.itemView.setOnLongClickListener {
-            onLongClick(tag)     // LONG CLICK
+            onLongClick(tag)
             true
         }
     }

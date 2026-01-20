@@ -1,6 +1,5 @@
 package com.linktine
 
-import TagsAdapter
 import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
@@ -22,6 +21,7 @@ import com.linktine.viewmodel.TagViewModel
 import com.skydoves.colorpickerview.ColorPickerView
 import androidx.core.net.toUri
 import androidx.core.widget.addTextChangedListener
+import com.linktine.ui.tags.TagsAdapter
 
 class TagsFragment : Fragment() {
 
