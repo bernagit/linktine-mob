@@ -16,8 +16,8 @@ data class Stats(
 // --- RECENT LINK ---
 data class RecentLink(
     @SerializedName("id") val id: String,
-    @SerializedName("title") val title: String,
-    @SerializedName("name") val name: String,
+    @SerializedName("title") val title: String? = null,
+    @SerializedName("name") val name: String? = null,
     @SerializedName("url") val url: String,
     @SerializedName("createdAt") val createdAt: String
 )

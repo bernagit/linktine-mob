@@ -6,6 +6,8 @@ import com.linktine.data.DashboardRepository
 import com.linktine.data.SettingsRepository
 import com.linktine.data.types.DashboardResponse
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class HomeViewModel(
     application: Application,
@@ -16,6 +18,9 @@ class HomeViewModel(
     private val _dashboardData = MutableLiveData<DashboardResponse?>()
     val dashboardData: LiveData<DashboardResponse?> = _dashboardData
 
+    private val _activeUser = MutableLiveData<String?>()
+    val activeUser: LiveData<String?> = _activeUser
+
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
@@ -25,41 +30,53 @@ class HomeViewModel(
     private val _text = MutableLiveData("Loading dashboard data...")
     val text: LiveData<String> = _text
 
+    private val loadMutex = Mutex()
+
     init {
-        // Observe active profile changes
+        // Observe profile changes
         viewModelScope.launch {
             settingsRepository.activeProfileFlow.collect { profileId ->
                 if (profileId.isNotEmpty()) {
-                    loadInitialData()
+                    val profile = settingsRepository.getActiveProfileOrNull()
+                    _activeUser.value = profile?.name
+                    loadDashboardForActiveProfile()
                 } else {
-                    // Clear dashboard when no profile
-                    _dashboardData.value = null
-                    _text.value = "No active profile"
-                    _error.value = null
+                    _activeUser.value = null
+                    clearDashboard()
                 }
             }
         }
     }
 
-    fun loadInitialData() {
-        if (_loading.value == true) return
-        _loading.value = true
+    private suspend fun loadDashboardForActiveProfile() {
+        loadMutex.withLock {
+            _loading.postValue(true)
+            _error.postValue(null)
+            _dashboardData.postValue(null) // Clear old dashboard immediately
 
-        viewModelScope.launch {
             try {
-                _text.value = "Fetching data..."
                 val result = dashboardRepository.fetchDashboard()
-                _dashboardData.value = result
-                _text.value = "Dashboard loaded! Total Links: ${result.stats.totalLinks}"
-                _error.value = null
+                _dashboardData.postValue(result)
+                _text.postValue("Dashboard loaded! Total Links: ${result.stats.totalLinks}")
             } catch (e: Exception) {
-                val errorMessage = e.message ?: "An unknown error occurred."
-                _error.value = errorMessage
-                _text.value = "Error loading dashboard: $errorMessage"
-                _dashboardData.value = null
+                _error.postValue(e.message ?: "Failed to load dashboard")
+                _text.postValue("Error loading dashboard: ${_error.value}")
             } finally {
-                _loading.value = false
+                _loading.postValue(false)
             }
+        }
+    }
+
+    private fun clearDashboard() {
+        _dashboardData.postValue(null)
+        _text.postValue("No active profile")
+        _error.postValue(null)
+        _loading.postValue(false)
+    }
+
+    fun loadInitialData() {
+        viewModelScope.launch {
+            loadDashboardForActiveProfile()
         }
     }
 
@@ -70,9 +87,10 @@ class HomeViewModel(
             if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
                 val settingsRepo = SettingsRepository(context)
                 val dashboardRepo = DashboardRepository(context, settingsRepo)
-                return HomeViewModel(context.applicationContext as Application, dashboardRepo, settingsRepo) as T
+                return HomeViewModel(context.applicationContext as android.app.Application, dashboardRepo, settingsRepo) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 }
+

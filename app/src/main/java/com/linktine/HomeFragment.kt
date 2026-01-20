@@ -1,5 +1,6 @@
 package com.linktine
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
@@ -13,17 +14,12 @@ import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.fragment.findNavController
 import com.google.android.material.card.MaterialCardView
 import com.linktine.data.SettingsRepository
 import com.linktine.data.types.DashboardResponse
 import com.linktine.data.types.RecentCollection
 import com.linktine.databinding.FragmentHomeBinding
 import com.linktine.viewmodel.HomeViewModel
-import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
 
@@ -45,34 +41,35 @@ class HomeFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        repository = SettingsRepository(requireContext().applicationContext)
-
-        // SwipeRefresh triggers ViewModel reload
         binding.homeSwipeRefresh.setOnRefreshListener {
             homeViewModel.loadInitialData()
         }
 
-        setupObservers()
+        homeViewModel.activeUser.observe(viewLifecycleOwner) { name ->
+            binding.textHomeStatus.text =
+                if (!name.isNullOrEmpty()) "Welcome back, $name!" else "Welcome To Linktine!"
+        }
 
-        // Refresh dashboard automatically when active profile changes
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                repository.activeProfileFlow.collect { profileId ->
-                    if (profileId.isNotEmpty()) {
-                        homeViewModel.loadInitialData()
-                    } else {
-                        clearDashboard()
-                    }
-                }
-            }
+        homeViewModel.dashboardData.observe(viewLifecycleOwner) { data ->
+            if (data != null) displayDashboardData(data) else clearDashboard()
+        }
+
+        homeViewModel.loading.observe(viewLifecycleOwner) { binding.homeSwipeRefresh.isRefreshing = it }
+
+        homeViewModel.error.observe(viewLifecycleOwner) { error ->
+            if (!error.isNullOrEmpty()) {
+                binding.textErrorIndicator.text = "Error: $error"
+                binding.textErrorIndicator.visibility = View.VISIBLE
+            } else binding.textErrorIndicator.visibility = View.GONE
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private fun setupObservers() {
-        // Loading state -> SwipeRefresh
         homeViewModel.loading.observe(viewLifecycleOwner) { isLoading ->
             binding.homeSwipeRefresh.isRefreshing = isLoading
         }
@@ -100,6 +97,7 @@ class HomeFragment : Fragment() {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private fun displayDashboardData(data: DashboardResponse) {
         binding.statTotalLinksValue.text = data.stats.totalLinks.toString()
         binding.totalCollections.text = data.stats.totalCollections.toString()
@@ -125,8 +123,8 @@ class HomeFragment : Fragment() {
                 data.recentLinks.take(3).forEach { link ->
                     addView(createRecentLinkCard(
                         title = when {
-                            link.name.isNotBlank() -> link.name
-                            link.title.isNotBlank() -> link.title
+                            !link.name.isNullOrBlank() -> link.name
+                            !link.title.isNullOrBlank() -> link.title
                             else -> "No title"
                         },
                         url = link.url
