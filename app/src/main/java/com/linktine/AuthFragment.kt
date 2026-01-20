@@ -10,15 +10,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.linktine.viewmodel.SettingsEvent
 import com.linktine.viewmodel.SettingsViewModel
 import com.linktine.viewmodel.SettingsViewModelFactory
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-
 class AuthFragment : Fragment() {
 
     private val viewModel: SettingsViewModel by viewModels {
@@ -52,9 +55,7 @@ class AuthFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_auth, container, false)
-    }
+    ): View = inflater.inflate(R.layout.fragment_auth, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -76,35 +77,43 @@ class AuthFragment : Fragment() {
         }
 
         btnScanQR?.setOnClickListener {
-            val intent = Intent(requireContext(), QrScannerActivity::class.java)
-            qrScanLauncher.launch(intent)
+            qrScanLauncher.launch(
+                Intent(requireContext(), QrScannerActivity::class.java)
+            )
         }
     }
 
     private fun setupObservers() {
-        // Read argument to know if we are adding a new account
         val forceAddAccount = arguments?.getBoolean("forceAddAccount", false) ?: false
 
-        if (!forceAddAccount) {
-            viewLifecycleOwner.lifecycleScope.launch {
-                viewModel.areSettingsPresent.collect { isPresent ->
-                    if (isPresent) {
-                        viewModel.validateCurrentSettingsAndLogin()
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+
+                // AUTO LOGIN
+                if (!forceAddAccount) {
+                    launch {
+                        viewModel.areSettingsPresent
+                            .distinctUntilChanged()
+                            .collectLatest { present ->
+                                if (present && viewModel.loginJob?.isActive != true) {
+                                    viewModel.validateCurrentSettingsAndLogin()
+                                }
+                            }
                     }
                 }
-            }
-        }
 
-        // Listen to one-time events
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.events.collect { event ->
-                when (event) {
-                    is SettingsEvent.SettingsSavedSuccess -> {
-                        Toast.makeText(requireContext(), event.message, Toast.LENGTH_SHORT).show()
-                        navigateToHome()
-                    }
-                    is SettingsEvent.Error -> {
-                        Toast.makeText(requireContext(), event.message, Toast.LENGTH_LONG).show()
+                // EVENTS
+                launch {
+                    viewModel.events.collectLatest { event ->
+                        when (event) {
+                            is SettingsEvent.SettingsSavedSuccess -> {
+                                Toast.makeText(requireContext(), event.message, Toast.LENGTH_SHORT).show()
+                                navigateToHome()
+                            }
+                            is SettingsEvent.Error -> {
+                                Toast.makeText(requireContext(), event.message, Toast.LENGTH_LONG).show()
+                            }
+                        }
                     }
                 }
             }

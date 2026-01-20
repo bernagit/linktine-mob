@@ -154,8 +154,14 @@ class TagsFragment : Fragment() {
 
         name.text = tag.name
         dot.background.setTint(tag.color.toColorInt())
+
+        // check for links nullability
+        if (tag.links.isNotEmpty()){
+            count.text = "Links: ${tag.links.size}"
+        } else {
+            count.text = "Links: 0"
+        }
         date.text = "Created: ${tag.createdAt}"
-        count.text = "Links: ${tag.links.size}"
 
         linksContainer.removeAllViews()
 

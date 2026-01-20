@@ -16,6 +16,7 @@ import com.linktine.data.SettingsRepository
 import com.linktine.ui.profile.ProfileAdapter
 import com.linktine.viewmodel.SettingsViewModel
 import com.linktine.viewmodel.SettingsViewModelFactory
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class ProfileSwitchBottomSheet : BottomSheetDialogFragment() {
@@ -44,36 +45,33 @@ class ProfileSwitchBottomSheet : BottomSheetDialogFragment() {
         recycler = view.findViewById(R.id.profilesRecycler)
         recycler.layoutManager = LinearLayoutManager(requireContext())
 
-        val profiles = repository.getAllProfiles().toMutableList()
-
         viewLifecycleOwner.lifecycleScope.launch {
-            val activeProfileId = repository.getActiveProfileId()
+
+            val profiles = repository.getAllProfiles()
+            val activeProfileId = repository.activeProfileFlow.first()
 
             adapter = ProfileAdapter(
-                profiles,
+                profiles.toMutableList(),
+
                 onClick = { profile ->
                     viewLifecycleOwner.lifecycleScope.launch {
                         settingsViewModel.switchProfile(profile.id)
-                        repository.getActiveProfileId()
                         dismiss()
-
-                        // Navigate to HomeFragment
-                        if (findNavController().currentDestination?.id != R.id.homeFragment) {
-                            findNavController().navigate(R.id.homeFragment)
-                        }
                     }
                 },
+
                 onDelete = { profile ->
                     viewLifecycleOwner.lifecycleScope.launch {
-                        val activeProfile = repository.getActiveProfile()
+                        val activeProfileIdNow = repository.activeProfileFlow.first()
+
                         repository.deleteProfile(profile.id)
                         adapter.remove(profile)
 
-                        if (activeProfile.id == profile.id) {
-                            val remainingProfiles = repository.getAllProfiles()
-                            if (remainingProfiles.isNotEmpty()) {
-                                settingsViewModel.switchProfile(remainingProfiles.first().id)
-                                adapter.setActiveProfile(remainingProfiles.first().id)
+                        if (activeProfileIdNow == profile.id) {
+                            val remaining = repository.getAllProfiles()
+                            if (remaining.isNotEmpty()) {
+                                settingsViewModel.switchProfile(remaining.first().id)
+                                adapter.setActiveProfile(remaining.first().id)
                             } else {
                                 dismiss()
                                 findNavController().navigate(
@@ -84,13 +82,13 @@ class ProfileSwitchBottomSheet : BottomSheetDialogFragment() {
                         }
                     }
                 },
-                activeProfileId = activeProfileId // pass active profile here
+
+                activeProfileId = activeProfileId
             )
 
             recycler.adapter = adapter
         }
 
-        // Add account button
         view.findViewById<TextView>(R.id.addAccountBtn).setOnClickListener {
             dismiss()
             findNavController().navigate(R.id.authFragment, bundleOf("forceAddAccount" to true))

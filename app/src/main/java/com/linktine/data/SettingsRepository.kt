@@ -1,7 +1,6 @@
-package com.linktine.data
+package com.linktine.data;
 
 import android.content.Context
-import androidx.core.content.edit
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -9,165 +8,133 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.linktine.data.types.UserProfile
 import com.linktine.network.RetrofitFactory
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.IOException
 
-// DataStore
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore("settings")
 
-class SettingsRepository(val context: Context) {
+class SettingsRepository(private val context: Context) {
 
-    private object PreferencesKeys {
-        val ACTIVE_PROFILE_ID = stringPreferencesKey("active_profile_id")
+    private object Keys {
+        val ACTIVE_ID = stringPreferencesKey("active_profile_id")
+        val USERS_JSON = stringPreferencesKey("users_json")
     }
 
-    // -------------------- ACTIVE PROFILE --------------------
+    private val dataStore = context.dataStore
+
+    // ---------------- FLOW CACHE ----------------
+
+    val activeProfileFlow = dataStore.data.map {
+        it[Keys.ACTIVE_ID] ?: ""
+    }
+
+    val usersFlow = dataStore.data.map {
+        it[Keys.USERS_JSON] ?: "[]"
+    }
+
+    // ---------------- WRITE ----------------
 
     suspend fun setActiveProfile(profileId: String) {
-        context.dataStore.edit {
-            it[PreferencesKeys.ACTIVE_PROFILE_ID] = profileId
+        dataStore.edit { it[Keys.ACTIVE_ID] = profileId }
+    }
+
+    private suspend fun saveUsers(json: String) {
+        dataStore.edit { it[Keys.USERS_JSON] = json }
+    }
+
+    // ---------------- READ ----------------
+
+    suspend fun getActiveProfile(): UserProfile {
+        val id = activeProfileFlow.first()
+        val users = getAllProfiles()
+        return users.first { it.id == id }
+    }
+
+    suspend fun getActiveProfileOrNull(): UserProfile? {
+        val allProfiles = getAllProfiles()
+        val activeId = activeProfileFlow.first()
+        return allProfiles.firstOrNull { it.id == activeId }
+    }
+
+
+    suspend fun getAllProfiles(): List<UserProfile> {
+        val json = usersFlow.first()
+        val array = JSONArray(json)
+
+        return List(array.length()) {
+            val u = array.getJSONObject(it)
+            UserProfile(
+                id = u.getString("id"),
+                serverUrl = u.getString("serverUrl"),
+                token = u.getString("token"),
+                email = u.getString("email"),
+                name = u.getString("name"),
+                role = u.getString("role")
+            )
         }
     }
 
-    suspend fun getActiveProfileId(): String {
-        return context.dataStore.data.first()[PreferencesKeys.ACTIVE_PROFILE_ID] ?: ""
-    }
-
-    val areSettingsPresent: Flow<Boolean> = context.dataStore.data.map {
-        it[PreferencesKeys.ACTIVE_PROFILE_ID]?.isNotEmpty() == true
-    }
-
-    val activeProfileFlow: Flow<String> = context.dataStore.data
-        .map { it[PreferencesKeys.ACTIVE_PROFILE_ID] ?: "" }
-
-    // -------------------- LOGIN --------------------
+    // ---------------- LOGIN ----------------
 
     suspend fun saveSettingsAndLogin(url: String, token: String): String {
-        return performNetworkValidationAndUserSave(url, token)
+        return performLogin(url, token)
     }
 
     suspend fun validateAndRefreshUser(url: String, token: String): String {
-        return performNetworkValidationAndUserSave(url, token)
+        return performLogin(url, token)
     }
 
-    private suspend fun performNetworkValidationAndUserSave(url: String, token: String): String {
-        return try {
-            val apiUrl = "$url/api"
-            val authService = RetrofitFactory.createApiService(this, apiUrl)
+    private suspend fun performLogin(url: String, token: String): String {
+        val apiUrl = "$url/api"
+        val service = RetrofitFactory.createApiService(this, apiUrl)
 
-            val userResponse = authService.getMeWithAuthToken("Apikey $token")
+        val user = service.getMeWithAuthToken("Apikey $token")
 
-            val userJson = JSONObject().apply {
-                put("id", userResponse.id)
-                put("email", userResponse.email)
-                put("name", userResponse.name)
-                put("role", userResponse.role)
-            }
+        val users = getAllProfiles().toMutableList()
+        users.removeAll { it.id == user.id }
 
-            saveUser(userJson, token, url)
-            setActiveProfile(userResponse.id)
-
-            userResponse.name
-
-        } catch (e: retrofit2.HttpException) {
-            val errorBody = e.response()?.errorBody()?.string() ?: "Unknown error"
-            throw IOException("Login failed (Code ${e.code()}): $errorBody")
-        } catch (e: Exception) {
-            throw Exception("Login failed: ${e.message}", e)
-        }
-    }
-
-    // -------------------- USER STORAGE --------------------
-
-    private fun saveUser(json: JSONObject, token: String, serverUrl: String) {
-        val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-
-        val usersArray = try {
-            JSONArray(prefs.getString("users", "[]"))
-        } catch (e: Exception) {
-            JSONArray()
-        }
-
-        val userId = json.optString("id")
-
-        val newUserObject = JSONObject().apply {
-            put("id", userId)
-            put("email", json.optString("email"))
-            put("name", json.optString("name"))
-            put("role", json.optString("role"))
-            put("serverUrl", serverUrl)
-            put("token", token)
-        }
-
-        var userFound = false
-        for (i in 0 until usersArray.length()) {
-            val existingUser = usersArray.optJSONObject(i)
-            if (existingUser != null && existingUser.optString("id") == userId) {
-                usersArray.put(i, newUserObject)
-                userFound = true
-                break
-            }
-        }
-
-        if (!userFound) {
-            usersArray.put(newUserObject)
-        }
-
-        prefs.edit {
-            putString("users", usersArray.toString())
-        }
-    }
-
-    // -------------------- READ USERS --------------------
-
-    fun getAllProfiles(): List<UserProfile> {
-        val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-        val usersArray = JSONArray(prefs.getString("users", "[]"))
-
-        val list = mutableListOf<UserProfile>()
-
-        for (i in 0 until usersArray.length()) {
-            val u = usersArray.getJSONObject(i)
-            list.add(
-                UserProfile(
-                    id = u.optString("id"),
-                    serverUrl = u.optString("serverUrl"),
-                    token = u.optString("token"),
-                    email = u.optString("email"),
-                    name = u.optString("name"),
-                    role = u.optString("role")
-                )
+        users.add(
+            UserProfile(
+                id = user.id,
+                email = user.email,
+                name = user.name,
+                role = user.role,
+                serverUrl = url,
+                token = token
             )
-        }
-        return list
-    }
+        )
 
-    suspend fun getActiveProfile(): UserProfile {
-        val id = getActiveProfileId()
-        return getAllProfiles().first { it.id == id }
-    }
-
-    // -------------------- DELETE PROFILE --------------------
-
-    fun deleteProfile(profileId: String) {
-        val prefs = context.getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
-        val usersArray = JSONArray(prefs.getString("users", "[]"))
-
-        val newArray = JSONArray()
-
-        for (i in 0 until usersArray.length()) {
-            val obj = usersArray.getJSONObject(i)
-            if (obj.optString("id") != profileId) {
-                newArray.put(obj)
+        saveUsers(JSONArray(users.map {
+            JSONObject().apply {
+                put("id", it.id)
+                put("email", it.email)
+                put("name", it.name)
+                put("role", it.role)
+                put("serverUrl", it.serverUrl)
+                put("token", it.token)
             }
-        }
+        }).toString())
 
-        prefs.edit {
-            putString("users", newArray.toString())
-        }
+        setActiveProfile(user.id)
+
+        return user.name
+    }
+
+    // ---------------- DELETE ----------------
+
+    suspend fun deleteProfile(id: String) {
+        val users = getAllProfiles().filter { it.id != id }
+        saveUsers(JSONArray(users.map {
+            JSONObject().apply {
+                put("id", it.id)
+                put("email", it.email)
+                put("name", it.name)
+                put("role", it.role)
+                put("serverUrl", it.serverUrl)
+                put("token", it.token)
+            }
+        }).toString())
     }
 }
