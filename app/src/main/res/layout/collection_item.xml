@@ -32,7 +32,7 @@
                 android:id="@+id/txtCollectionName"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:textColor="#212121"
+                android:textColor="?android:textColorPrimary"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"/>
 
@@ -40,7 +40,7 @@
                 android:id="@+id/txtCollectionDescription"
                 android:layout_marginTop="4dp"
                 android:textSize="14sp"
-                android:textColor="#757575"
+                android:textColor="?android:textColorSecondary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"/>
 
@@ -62,7 +62,7 @@
             android:src="@drawable/outline_edit"
             android:layout_gravity="center_vertical"
             android:layout_marginRight="10dp"
-            app:tint="#757575"/>
+            app:tint="?android:textColorSecondary"/>
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
