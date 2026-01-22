@@ -5,6 +5,7 @@ import android.view.DragEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.graphics.toColorInt
@@ -28,6 +29,7 @@ class CollectionsAdapter(
     private val onDragStart: (CollectionListItem, View) -> Unit,
     private val onDropOnCollection: (draggedElement: CollectionListItem, targetCollectionId: String) -> Unit,
     private val onDragEnd: () -> Unit,
+    private val showEditCollectionDialog: (collection: Collection) -> Unit,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -35,10 +37,16 @@ class CollectionsAdapter(
         private const val TYPE_LINK = 1
     }
 
-    class CollectionViewHolder(view: View, private val onClick: (Collection) -> Unit) : RecyclerView.ViewHolder(view) {
+    class CollectionViewHolder(
+        view: View,
+        private val onClick: (Collection) -> Unit,
+        private val showEditCollectionDialog: (collection: Collection) -> Unit
+    ) : RecyclerView.ViewHolder(view) {
+
         val name: TextView = view.findViewById(R.id.txtCollectionName)
         val description: TextView = view.findViewById(R.id.txtCollectionDescription)
         val colorIndicator: View = view.findViewById(R.id.colorIndicator)
+        val imageButton: ImageButton = view.findViewById(R.id.btnEdit)
 
         fun bind(collection: Collection) {
             name.text = collection.name
@@ -52,6 +60,7 @@ class CollectionsAdapter(
             }
 
             itemView.setOnClickListener { onClick(collection) }
+            imageButton.setOnClickListener { showEditCollectionDialog(collection) }
         }
     }
 
@@ -61,7 +70,10 @@ class CollectionsAdapter(
         private val thumbnail: ImageView = view.findViewById(R.id.imgThumbnail)
 
         fun bind(link: Link) {
-            title.text = link.title
+            title.text = when(link.name) {
+                "", null -> link.title
+                else -> link.name
+            }
             domain.text = link.domain
 
             val placeholder = R.drawable.ic_link
@@ -91,7 +103,7 @@ class CollectionsAdapter(
             TYPE_COLLECTION -> {
                 val view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.collection_item, parent, false)
-                CollectionViewHolder(view, onCollectionClick)
+                CollectionViewHolder(view, onCollectionClick, showEditCollectionDialog)
             }
             TYPE_LINK -> {
                 val view = LayoutInflater.from(parent.context)

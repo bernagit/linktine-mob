@@ -18,6 +18,7 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.toColorInt
 import androidx.core.net.toUri
 import androidx.fragment.app.viewModels
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
@@ -27,6 +28,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.textfield.TextInputEditText
+import com.linktine.data.types.Collection
 import com.linktine.data.types.CollectionsResponse
 import com.linktine.databinding.FragmentCollectionsBinding
 import com.linktine.ui.collections.CollectionListItem
@@ -110,7 +113,7 @@ class CollectionsFragment : Fragment() {
         }
 
         binding.fabAddLink.setOnClickListener { showAddLinkDialog() }
-        binding.fabAddCollection.setOnClickListener { showAddCollectionDialog() }
+        binding.fabAddCollection.setOnClickListener { showCollectionDialog() }
 
         binding.moveUpCard.setOnDragListener { v, event ->
             actionCardDragListener(v, event, onDrop = { draggedItem ->
@@ -177,8 +180,7 @@ class CollectionsFragment : Fragment() {
                 true
             }
 
-            DragEvent.ACTION_DRAG_EXITED,
-            DragEvent.ACTION_DRAG_ENDED -> {
+            DragEvent.ACTION_DRAG_EXITED -> {
                 materialCard.animate()
                     .scaleX(1f)
                     .scaleY(1f)
@@ -187,6 +189,9 @@ class CollectionsFragment : Fragment() {
                     .start()
                 materialCard.alpha = 1f
 
+                true
+            }
+            DragEvent.ACTION_DRAG_ENDED -> {
                 onDragEnd()
                 true
             }
@@ -318,19 +323,102 @@ class CollectionsFragment : Fragment() {
             .show()
     }
 
-    private fun onDragStart() {
-        if(collectionsViewModel.currentCollection.value != null) {
-            binding.moveUpCard.visibility = View.VISIBLE
+    private fun showCollectionDialog(collection: Collection? = null) {
+        closeFabButtons()
+
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_collection, null)
+
+        val title = dialogView.findViewById<TextView>(R.id.txtDialogTitle)
+        val nameInput = dialogView.findViewById<EditText>(R.id.inputName)
+        val descriptionInput = dialogView.findViewById<EditText>(R.id.inputDescription)
+        val colorInput = dialogView.findViewById<ColorPickerView>(R.id.colorPickerView)
+
+        val isEdit = collection != null
+
+        title.text = if (isEdit) "Edit collection" else "Create collection"
+        title.text = when(isEdit) {
+            true -> "Edit collection "
+            false -> "Create collection in "
+        }
+        title.append(SpannableString(
+            if(isEdit) collection.name
+            else if(collectionsViewModel.currentCollection.value == null) "Root"
+            else collectionsViewModel.currentCollection.value?.name)
+        )
+
+        if(collection != null) {
+            nameInput.setText(collection.name)
+            descriptionInput.setText(collection.description)
+            colorInput.setInitialColor(collection.color.toColorInt())
         }
 
-        binding.deleteDropCard.visibility = View.VISIBLE
-        binding.fabMain.visibility = View.GONE
+        val parentId = collection?.parentId
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setView(dialogView)
+            .setPositiveButton(if (isEdit) "Update" else "Create") { _, _ ->
+                val name = nameInput.text?.toString()?.trim().orEmpty()
+                val description = descriptionInput.text?.toString()?.trim().orEmpty()
+                val color = colorInput.color
+
+                if (name.isNotEmpty()) {
+                    lifecycleScope.launch {
+                        if (isEdit) {
+                            collectionsViewModel.updateCollection(
+                                collectionId = collection.id,
+                                name = name,
+                                description = description,
+                                color = "#" + color.toHexString().uppercase().substring(2),
+                                parentId = parentId
+                            )
+                        } else {
+                            collectionsViewModel.addCollection(
+                                name = name,
+                                description = description,
+                                color = "#" + color.toHexString().uppercase().substring(2),
+                                parentId = parentId
+                            )
+                        }
+                        collectionsViewModel.reloadData()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+
+    private fun onDragStart() {
+        if(collectionsViewModel.currentCollection.value != null) {
+            binding.moveUpCard.fadeIn()
+        }
+
+        binding.deleteDropCard.fadeIn()
+        binding.fabMain.fadeOut()
+    }
+
+    private fun View.fadeOut(duration: Long = 200) {
+        animate()
+            .alpha(0f)
+            .setDuration(duration)
+            .withEndAction {
+                visibility = View.GONE
+            }
+    }
+
+
+    private fun View.fadeIn(duration: Long = 200) {
+        alpha = 0f
+        visibility = View.VISIBLE
+        animate()
+            .alpha(1f)
+            .setDuration(duration)
     }
 
     private fun onDragEnd() {
-        binding.moveUpCard.visibility = View.GONE
-        binding.deleteDropCard.visibility = View.GONE
-        binding.fabMain.visibility = View.VISIBLE
+        binding.moveUpCard.fadeOut()
+        binding.deleteDropCard.fadeOut()
+        binding.fabMain.fadeIn()
     }
 
     private fun displayCollectionsData(data: CollectionsResponse) {
@@ -364,22 +452,22 @@ class CollectionsFragment : Fragment() {
                 onDragStart()
             },
             onDropOnCollection = { draggedElement, targetCollectionId ->
-                when(draggedElement) {
+                when (draggedElement) {
                     is CollectionListItem.CollectionItem -> {
                         val collectionId = draggedElement.collection.id
-                        if(collectionId != targetCollectionId) {
+                        if (collectionId != targetCollectionId) {
                             collectionsViewModel.moveCollection(collectionId, targetCollectionId)
                         }
                     }
+
                     is CollectionListItem.LinkItem -> {
                         val linkId = draggedElement.link.id
                         collectionsViewModel.moveLink(linkId, targetCollectionId)
                     }
                 }
             },
-            onDragEnd = {
-                onDragEnd()
-            }
+            onDragEnd = { onDragEnd() },
+            showEditCollectionDialog = { collection -> showCollectionDialog(collection) },
         )
         binding.collectionsRecyclerView.adapter = adapter
     }

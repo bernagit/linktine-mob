@@ -50,6 +50,18 @@ class CollectionRepository(
         }
     }
 
+    suspend fun updateCollection(collectionId: String, name: String, description: String?, color: String, parentId: String?): Collection {
+        val service = getApiService()
+        return try {
+            service.updateCollection(collectionId, CollectionUpdate(name, description, color, parentId))
+        } catch (e: Exception) {
+            throw IOException(
+                "Could not create new collection. Check connection and authentication.",
+                e
+            )
+        }
+    }
+
     suspend fun deleteCollection(collectionId: String) {
         val service = getApiService()
         try {

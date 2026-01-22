@@ -89,6 +89,13 @@ class CollectionsViewModel(
         }
     }
 
+    fun updateCollection(collectionId: String, name: String, description: String?, color: String, parentId: String?) {
+        viewModelScope.launch {
+            collectionRepository.updateCollection(collectionId, name, description, color, parentId)
+            reloadData()
+        }
+    }
+
     fun moveLink(linkId: String, collectionId: String?) {
         viewModelScope.launch {
             linkRepository.moveLinkIntoCollection(linkId, collectionId)
