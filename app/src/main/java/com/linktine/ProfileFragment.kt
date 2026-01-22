@@ -10,6 +10,7 @@ import android.widget.Switch
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.linktine.viewmodel.ProfileViewModel
 
 class ProfileFragment : Fragment() {
@@ -22,13 +23,12 @@ class ProfileFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_profile, container, false)
     }
 
-    @SuppressLint("UseSwitchCompatOrMaterialCode")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 
         val name = view.findViewById<TextView>(R.id.text_profile_name)
         val email = view.findViewById<TextView>(R.id.text_profile_email)
         val role = view.findViewById<TextView>(R.id.text_profile_role)
-        val darkSwitch = view.findViewById<Switch>(R.id.switch_dark_mode)
+        val darkSwitch = view.findViewById<SwitchMaterial>(R.id.switch_dark_mode)
         val logoutBtn = view.findViewById<Button>(R.id.btn_logout)
 
         viewModel.activeProfile.observe(viewLifecycleOwner) { profile ->

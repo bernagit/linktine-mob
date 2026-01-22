@@ -1,5 +1,6 @@
 package com.linktine.ui.collections
 
+import android.content.Intent
 import android.graphics.Color
 import android.view.DragEvent
 import android.view.LayoutInflater
@@ -68,6 +69,7 @@ class CollectionsAdapter(
         val title: TextView = view.findViewById(R.id.txtLinkTitle)
         val domain: TextView = view.findViewById(R.id.txtLinkDomain)
         private val thumbnail: ImageView = view.findViewById(R.id.imgThumbnail)
+        val btnShare: ImageButton = view.findViewById(R.id.btnShare)
 
         fun bind(link: Link) {
             title.text = when(link.name) {
@@ -87,6 +89,16 @@ class CollectionsAdapter(
 
             itemView.setOnClickListener {
                 onClick(link)
+            }
+
+            btnShare.setOnClickListener {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, link.url)
+                }
+
+                val chooser = Intent.createChooser(intent, "Share link via")
+                it.context.startActivity(chooser)
             }
         }
     }

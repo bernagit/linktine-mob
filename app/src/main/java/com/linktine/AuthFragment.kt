@@ -13,6 +13,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import com.linktine.viewmodel.SettingsEvent
 import com.linktine.viewmodel.SettingsViewModel
@@ -121,7 +122,13 @@ class AuthFragment : Fragment() {
     }
 
     private fun navigateToHome() {
-        findNavController().navigate(R.id.homeFragment)
+        findNavController().navigate(
+            R.id.homeFragment,
+            null,
+            NavOptions.Builder()
+                .setPopUpTo(findNavController().graph.startDestinationId, true)
+                .build()
+        )
     }
 
     override fun onDestroyView() {
