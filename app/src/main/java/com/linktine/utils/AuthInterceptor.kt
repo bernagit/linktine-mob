@@ -17,6 +17,12 @@ class AuthInterceptor(private val repository: SettingsRepository) : Interceptor 
 
     @Volatile private var cachedToken: String? = null
 
+    private val publicAuthPaths = setOf(
+        "/auth/login",
+        "/auth/register",
+        "/auth/logout"
+    )
+
     init {
         CoroutineScope(Dispatchers.IO).launch {
             repository.activeProfileFlow.collect { id ->
@@ -28,8 +34,9 @@ class AuthInterceptor(private val repository: SettingsRepository) : Interceptor 
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
+        val path = request.url.encodedPath
 
-        if (request.url.encodedPath.endsWith("/auth/me")) {
+        if (publicAuthPaths.any { path.endsWith(it) }) {
             return chain.proceed(request)
         }
 

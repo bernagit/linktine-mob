@@ -91,6 +91,29 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
+    suspend fun updateActiveProfileName(newName: String) {
+        val profiles = getAllProfiles().toMutableList()
+        val activeId = activeProfileFlow.first()
+
+        val updatedProfiles = profiles.map {
+            if (it.id == activeId) it.copy(name = newName) else it
+        }
+
+        saveUsers(
+            JSONArray(updatedProfiles.map {
+                JSONObject().apply {
+                    put("id", it.id)
+                    put("email", it.email)
+                    put("name", it.name)
+                    put("role", it.role)
+                    put("serverUrl", it.serverUrl)
+                    put("token", it.token)
+                }
+            }).toString()
+        )
+    }
+
+
     suspend fun getCurrentTheme(): String {
         return currentThemeFlow.first()
     }

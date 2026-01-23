@@ -13,6 +13,7 @@ import com.linktine.data.types.PaginatedResponse
 import com.linktine.data.types.Tag
 import com.linktine.data.types.TagCreate
 import com.linktine.data.types.TagUpdateLinks
+import com.linktine.data.types.UsernameUpdate
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -92,4 +93,7 @@ interface ApiService {
 
     @PUT("v1/collections/{id}")
     suspend fun updateCollection(@Path("id") id: String, @Body collection: CollectionUpdate): Collection
+
+    @PATCH("v1/auth/me")
+    suspend fun updateUsername(@Body usernameUpdate: UsernameUpdate)
 }
