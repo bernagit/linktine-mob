@@ -20,6 +20,7 @@ class SettingsRepository(private val context: Context) {
     private object Keys {
         val ACTIVE_ID = stringPreferencesKey("active_profile_id")
         val USERS_JSON = stringPreferencesKey("users_json")
+        val CURRENT_THEME = stringPreferencesKey("current_theme")
     }
 
     private val dataStore = context.dataStore
@@ -34,6 +35,10 @@ class SettingsRepository(private val context: Context) {
         it[Keys.USERS_JSON] ?: "[]"
     }
 
+    val currentThemeFlow = dataStore.data.map {
+        it[Keys.CURRENT_THEME] ?: "light"
+    }
+
     // ---------------- WRITE ----------------
 
     suspend fun setActiveProfile(profileId: String) {
@@ -42,6 +47,16 @@ class SettingsRepository(private val context: Context) {
 
     private suspend fun saveUsers(json: String) {
         dataStore.edit { it[Keys.USERS_JSON] = json }
+    }
+
+    suspend fun setCurrentTheme(currentTheme: String) {
+        val themeNames = listOf("light", "dark")
+
+        if(!themeNames.contains(currentTheme)) {
+            return;
+        }
+
+        dataStore.edit { it[Keys.CURRENT_THEME] = currentTheme }
     }
 
     // ---------------- READ ----------------
@@ -74,6 +89,10 @@ class SettingsRepository(private val context: Context) {
                 role = u.getString("role")
             )
         }
+    }
+
+    suspend fun getCurrentTheme(): String {
+        return currentThemeFlow.first()
     }
 
     // ---------------- LOGIN ----------------

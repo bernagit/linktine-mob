@@ -1,12 +1,10 @@
 package com.linktine
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.Switch
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -47,6 +45,16 @@ class ProfileFragment : Fragment() {
 
         logoutBtn.setOnClickListener {
             viewModel.logout()
+        }
+
+        viewModel.currentTheme.observe(viewLifecycleOwner) { theme ->
+            // Disable temporary the onChange, otherwise it would be called
+            // when forcing the isChecked property
+            darkSwitch.setOnCheckedChangeListener(null)
+            darkSwitch.isChecked = (theme == "dark")
+            darkSwitch.setOnCheckedChangeListener { _, isChecked ->
+                viewModel.setDarkMode(isChecked)
+            }
         }
     }
 }

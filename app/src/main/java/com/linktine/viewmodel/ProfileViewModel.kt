@@ -19,11 +19,22 @@ class ProfileViewModel(
     private val _logoutEvent = MutableLiveData<Unit>()
     val logoutEvent: LiveData<Unit> = _logoutEvent
 
+    val currentTheme: LiveData<String> =
+        repository.currentThemeFlow.asLiveData()
+
     fun setDarkMode(enabled: Boolean) {
+        var currentTheme = ""
+
         if (enabled) {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            currentTheme = "dark"
         } else {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            currentTheme = "light"
+        }
+
+        viewModelScope.launch {
+            repository.setCurrentTheme(currentTheme)
         }
     }
 
