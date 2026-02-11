@@ -2,12 +2,18 @@ package com.linktine.viewmodel
 
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.bundleOf
 import androidx.lifecycle.*
+import androidx.navigation.fragment.findNavController
+import com.linktine.R
 import com.linktine.data.SettingsRepository
 import com.linktine.data.UserRepository
 import com.linktine.data.types.UserProfile
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 class ProfileViewModel(
     application: Application,
@@ -58,6 +64,9 @@ class ProfileViewModel(
         }
     }
 
+    private val _eventsChannel = Channel<SettingsEvent>(Channel.BUFFERED)
+    val events = _eventsChannel.receiveAsFlow()
+
     fun logout() {
         viewModelScope.launch {
             val profile = repository.getActiveProfileOrNull()
@@ -65,10 +74,38 @@ class ProfileViewModel(
                 repository.deleteProfile(profile.id)
             }
 
-            repository.setActiveProfile("")
+            val remaining = repository.getAllProfiles()
+            if (remaining.isNotEmpty()) {
+                repository.setActiveProfile(remaining.first().id)
 
-            // Notify UI to navigate
-            _logoutEvent.postValue(Unit)
+                viewModelScope.launch {
+                    try {
+                        val profile = repository.getActiveProfileOrNull()
+                        if (profile == null) {
+                            _eventsChannel.send(
+                                SettingsEvent.Error("No active profile found. Please login again.")
+                            )
+                            return@launch
+                        }
+
+                        val userName =
+                            repository.validateAndRefreshUser(profile.serverUrl, profile.token)
+
+                        _eventsChannel.send(SettingsEvent.SettingsSavedSuccess("$userName logged in"))
+
+                    } catch (e: CancellationException) {
+                        // ignore
+                    } catch (e: Exception) {
+                        _eventsChannel.send(
+                            SettingsEvent.Error("Login failed. Please try with another profile.")
+                        )
+                    }
+                }
+            } else {
+                // Notify UI to navigate
+                _logoutEvent.postValue(Unit)
+            }
+
         }
     }
 
